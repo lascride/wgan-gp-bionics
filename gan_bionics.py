@@ -37,6 +37,8 @@ def parse_args():
     parser.add_argument('--OUTPUT_DIM', dest='OUTPUT_DIM', help='Number of pixels in MNIST (28*28)',type=int, default=784)
     parser.add_argument('--output_lenth', dest='output_lenth', help='lenth of the output images',type=int, default=64)
     parser.add_argument('--img_num', dest='img_num', help='the number of the output images', type=int, default=4096)
+    parser.add_argument('--model_dir', type=str, default='models',
+                        help='directory to save models')
     args = parser.parse_args()
     return args
 
@@ -224,6 +226,7 @@ if __name__ == '__main__':
     
     train_gen, dev_gen, test_gen = lib.mnist.load(args.BATCH_SIZE, args.BATCH_SIZE)
     # Train loop
+    saver = tf.train.Saver()
     with tf.Session() as session:
     
         session.run(tf.initialize_all_variables())
@@ -254,17 +257,9 @@ if __name__ == '__main__':
     
             # Calculate dev loss and generate samples every 100 iters
             if iteration % 100 == 99:
-                dev_disc_costs = []
-                for images,_ in dev_gen():
-                    _dev_disc_cost = session.run(
-                        disc_cost, 
-                        feed_dict={real_data: images}
-                    )
-                    dev_disc_costs.append(_dev_disc_cost)
-                lib.plot.plot('dev disc cost', np.mean(dev_disc_costs))
     
                 generate_image(iteration, _data)
-    
+                saver.save(session, args.model_dir + '/wgangp_' + str(iteration) + '.cptk')
             # Write logs every 100 iters
             if (iteration < 5) or (iteration % 100 == 99):
                 lib.plot.flush()
