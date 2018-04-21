@@ -5,3 +5,5 @@ push
 *.pkl
 *.jpg
 *.png
+
+models/

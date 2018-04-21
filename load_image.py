@@ -6,12 +6,12 @@ def make_generator(path, n_files, batch_size):
     epoch_count = [1]
     def get_epoch():
         images = np.zeros((batch_size, 3, 64, 64), dtype='int32')
-        files = range(n_files)
+        files = list(range(n_files))
         random_state = np.random.RandomState(epoch_count[0])
         random_state.shuffle(files)
         epoch_count[0] += 1
         for n, i in enumerate(files):
-            image = scipy.misc.imread("{}/{}.png".format(path, str(i+1).zfill(len(str(n_files)))))
+            image = scipy.misc.imread("{}/{}.jpg".format(path, str(i)))
             images[n % batch_size] = image.transpose(2,0,1)
             if n > 0 and n % batch_size == 0:
                 yield (images,)
@@ -25,6 +25,7 @@ def load(batch_size, data_dir='E:/project/project/image/input_3_64_10000_rot/10'
 if __name__ == '__main__':
     train_gen = load(64)
     t0 = time.time()
+    print('start')
     for i, batch in enumerate(train_gen(), start=1):
         print ("{}\t{}".format(str(time.time() - t0), batch[0][0,0,0,0]))
         if i == 1000:

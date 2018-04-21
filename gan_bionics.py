@@ -46,6 +46,10 @@ if __name__ == '__main__':
     args = parse_args()
     for arg in vars(args):
         print('[%s] =' % arg, getattr(args, arg))
+        
+    if not os.path.exists(args.model_dir):
+        os.makedirs(args.model_dir)
+    
     def LeakyReLU(x, alpha=0.2):
         return tf.maximum(alpha*x, x)
     
@@ -210,7 +214,7 @@ if __name__ == '__main__':
         samples = session.run(fixed_noise_samples)
         lib.save_images.save_images(
             samples.reshape((128, 28, 28)), 
-            'samples_{}.png'.format(frame)
+            args.model_dir +'/samples_{}.png'.format(frame)
         )
     
     # Dataset iterator
@@ -232,7 +236,8 @@ if __name__ == '__main__':
         session.run(tf.initialize_all_variables())
     
         gen = inf_train_gen()
-    
+
+ 
         for iteration in range(args.ITERS):
             start_time = time.time()
     
