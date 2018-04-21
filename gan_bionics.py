@@ -19,6 +19,7 @@ import tflib.save_images
 import tflib.mnist
 import tflib.plot
 import argparse
+import load_image
 
 
 lib.print_model_settings(locals().copy())
@@ -26,15 +27,15 @@ lib.print_model_settings(locals().copy())
 def parse_args():
     parser = argparse.ArgumentParser(description='cut images')
     parser.add_argument('--MODE', dest='MODE', help='dcgan, wgan, or wgan-gp', default='wgan-gp', type=str)
-    parser.add_argument('--output_path', dest='output_path', help='the output path', default='e:/project/project/image/input_3_64_10000_rot', type=str)
-    parser.add_argument('--input_path', dest='input_path', help='the input path', default='e:/project/project/image/input_3_64_10000_rot', type=str)
+    parser.add_argument('--output_path', dest='output_path', help='the output path', default='e:/project/project/image/input_3_64_10000_rot/10', type=str)
+    parser.add_argument('--DATA_DIR', dest='DATA_DIR', help='the input path', default='e:/project/project/image/input_3_64_10000_rot/10', type=str)
     parser.add_argument('--color_mode', dest='color_mode', help='rgb or gray-scale', default='rgb', type=str)
     parser.add_argument('--DIM', dest='DIM', help='Model dimensionality',type=int, default=64)
-    parser.add_argument('--BATCH_SIZE', dest='BATCH_SIZE', help='Batch size',type=int, default=50)
+    parser.add_argument('--BATCH_SIZE', dest='BATCH_SIZE', help='Batch size',type=int, default=128)
     parser.add_argument('--CRITIC_ITERS', dest='CRITIC_ITERS', help='For WGAN and WGAN-GP, number of critic iters per gen iter',type=int, default=5)
     parser.add_argument('--LAMBDA', dest='LAMBDA', help='Gradient penalty lambda hyperparameter',type=int, default=10)
     parser.add_argument('--ITERS', dest='ITERS', help='How many generator iterations to train for',type=int, default=200000)
-    parser.add_argument('--OUTPUT_DIM', dest='OUTPUT_DIM', help='Number of pixels in MNIST (28*28)',type=int, default=784)
+    parser.add_argument('--OUTPUT_DIM', dest='OUTPUT_DIM', help='Number of pixels in MNIST (28*28)',type=int, default=64*64*3)
     parser.add_argument('--output_lenth', dest='output_lenth', help='lenth of the output images',type=int, default=64)
     parser.add_argument('--img_num', dest='img_num', help='the number of the output images', type=int, default=4096)
     parser.add_argument('--model_dir', type=str, default='models',
@@ -73,55 +74,75 @@ if __name__ == '__main__':
         )
         return LeakyReLU(output)
     
-    def Generator(n_samples, noise=None):
+    def Generator(n_samples, noise=None, dim=args.DIM, bn=True, nonlinearity=tf.nn.relu):
+        lib.ops.conv2d.set_weights_stdev(0.02)
+        lib.ops.deconv2d.set_weights_stdev(0.02)
+        lib.ops.linear.set_weights_stdev(0.02)
+    
         if noise is None:
             noise = tf.random_normal([n_samples, 128])
     
-        output = lib.ops.linear.Linear('Generator.Input', 128, 4*4*4*args.DIM, noise)
-        if args.MODE == 'wgan':
-            output = lib.ops.batchnorm.Batchnorm('Generator.BN1', [0], output)
-        output = tf.nn.relu(output)
-        output = tf.reshape(output, [-1, 4*args.DIM, 4, 4])
+        output = lib.ops.linear.Linear('Generator.Input', 128, 4*4*8*dim, noise)
+        output = tf.reshape(output, [-1, 8*dim, 4, 4])
     
-        output = lib.ops.deconv2d.Deconv2D('Generator.2', 4*args.DIM, 2*args.DIM, 5, output)
-        if args.MODE == 'wgan':
-            output = lib.ops.batchnorm.Batchnorm('Generator.BN2', [0,2,3], output)
-        output = tf.nn.relu(output)
+        output = nonlinearity(output)
     
-        output = output[:,:,:7,:7]
+        output = lib.ops.deconv2d.Deconv2D('Generator.2', 8*dim, 4*dim, 5, output)
     
-        output = lib.ops.deconv2d.Deconv2D('Generator.3', 2*args.DIM, args.DIM, 5, output)
-        if args.MODE == 'wgan':
-            output = lib.ops.batchnorm.Batchnorm('Generator.BN3', [0,2,3], output)
-        output = tf.nn.relu(output)
+        output = nonlinearity(output)
     
-        output = lib.ops.deconv2d.Deconv2D('Generator.5', args.DIM, 1, 5, output)
-        output = tf.nn.sigmoid(output)
+        output = lib.ops.deconv2d.Deconv2D('Generator.3', 4*dim, 2*dim, 5, output)
+    
+        output = nonlinearity(output)
+    
+        output = lib.ops.deconv2d.Deconv2D('Generator.4', 2*dim, dim, 5, output)
+    
+        output = nonlinearity(output)
+    
+        output = lib.ops.deconv2d.Deconv2D('Generator.5', dim, 3, 5, output)
+        output = tf.tanh(output)
+    
+        lib.ops.conv2d.unset_weights_stdev()
+        lib.ops.deconv2d.unset_weights_stdev()
+        lib.ops.linear.unset_weights_stdev()
     
         return tf.reshape(output, [-1, args.OUTPUT_DIM])
     
-    def Discriminator(inputs):
-        output = tf.reshape(inputs, [-1, 1, 28, 28])
     
-        output = lib.ops.conv2d.Conv2D('Discriminator.1',1,args.DIM,5,output,stride=2)
-        output = LeakyReLU(output)
+    def Discriminator(inputs, dim=args.DIM, bn=True, nonlinearity=LeakyReLU):
+        output = tf.reshape(inputs, [-1, 3, 64, 64])
     
-        output = lib.ops.conv2d.Conv2D('Discriminator.2', args.DIM, 2*args.DIM, 5, output, stride=2)
-        if args.MODE == 'wgan':
-            output = lib.ops.batchnorm.Batchnorm('Discriminator.BN2', [0,2,3], output)
-        output = LeakyReLU(output)
+        lib.ops.conv2d.set_weights_stdev(0.02)
+        lib.ops.deconv2d.set_weights_stdev(0.02)
+        lib.ops.linear.set_weights_stdev(0.02)
     
-        output = lib.ops.conv2d.Conv2D('Discriminator.3', 2*args.DIM, 4*args.DIM, 5, output, stride=2)
-        if args.MODE == 'wgan':
-            output = lib.ops.batchnorm.Batchnorm('Discriminator.BN3', [0,2,3], output)
-        output = LeakyReLU(output)
+        output = lib.ops.conv2d.Conv2D('Discriminator.1', 3, dim, 5, output, stride=2)
+        output = nonlinearity(output)
     
-        output = tf.reshape(output, [-1, 4*4*4*args.DIM])
-        output = lib.ops.linear.Linear('Discriminator.Output', 4*4*4*args.DIM, 1, output)
+        output = lib.ops.conv2d.Conv2D('Discriminator.2', dim, 2*dim, 5, output, stride=2)
     
-        return tf.reshape(output, [-1])
+        output = nonlinearity(output)
     
-    real_data = tf.placeholder(tf.float32, shape=[args.BATCH_SIZE, args.OUTPUT_DIM])
+        output = lib.ops.conv2d.Conv2D('Discriminator.3', 2*dim, 4*dim, 5, output, stride=2)
+    
+        output = nonlinearity(output)
+    
+        output = lib.ops.conv2d.Conv2D('Discriminator.4', 4*dim, 8*dim, 5, output, stride=2)
+    
+        output = nonlinearity(output)
+    
+        output = tf.reshape(output, [-1, 4*4*8*dim])
+        output = lib.ops.linear.Linear('Discriminator.Output', 4*4*8*dim, 1, output)
+    
+        lib.ops.conv2d.unset_weights_stdev()
+        lib.ops.deconv2d.unset_weights_stdev()
+        lib.ops.linear.unset_weights_stdev()
+    
+        return tf.reshape(output, [-1])    
+    
+    real_data_conv = tf.placeholder(tf.int32, shape=[1,args.BATCH_SIZE, 3, 64, 64])
+    real_data = tf.reshape(2*((tf.cast(real_data_conv, tf.float32)/255.)-.5), [args.BATCH_SIZE, args.OUTPUT_DIM])
+    
     fake_data = Generator(args.BATCH_SIZE)
     
     disc_real = Discriminator(real_data)
@@ -208,19 +229,23 @@ if __name__ == '__main__':
     
         clip_disc_weights = None
     
+
+    
+    
+    
     # For saving samples
     
-    def generate_image(frame, true_dist):
+
+        
+    def generate_image(iteration):
         samples = session.run(fixed_noise_samples)
-        lib.save_images.save_images(
-            samples.reshape((128, 28, 28)), 
-            args.model_dir +'/samples_{}.png'.format(frame)
-        )
-    
+        samples = ((samples+1.)*(255.99/2)).astype('int32')
+        lib.save_images.save_images(samples.reshape((128, 3, 64, 64)), args.model_dir +'/samples_{}.png'.format(iteration))
+
     # Dataset iterator
     def inf_train_gen():
         while True:
-            for images,targets in train_gen():
+            for images in train_gen():
                 yield images
     
     
@@ -228,7 +253,9 @@ if __name__ == '__main__':
     fixed_noise = tf.constant(np.random.normal(size=(128, 128)).astype('float32'))
     fixed_noise_samples = Generator(128, noise=fixed_noise)
     
-    train_gen, dev_gen, test_gen = lib.mnist.load(args.BATCH_SIZE, args.BATCH_SIZE)
+    train_gen = load_image.load(args.BATCH_SIZE, data_dir=args.DATA_DIR)
+    #train_gen, dev_gen, test_gen = lib.mnist.load(args.BATCH_SIZE, args.BATCH_SIZE)
+    
     # Train loop
     saver = tf.train.Saver()
     with tf.Session() as session:
@@ -252,18 +279,18 @@ if __name__ == '__main__':
                 _data = gen.__next__()
                 _disc_cost, _ = session.run(
                     [disc_cost, disc_train_op],
-                    feed_dict={real_data: _data}
+                    feed_dict={real_data_conv:_data}
                 )
                 if clip_disc_weights is not None:
                     _ = session.run(clip_disc_weights)
     
             lib.plot.plot('train disc cost', _disc_cost)
             lib.plot.plot('time', time.time() - start_time)
-    
+           # print("iter: %d   disc_cost: %f"%(iteration,_disc_cost))
             # Calculate dev loss and generate samples every 100 iters
-            if iteration % 100 == 99:
+            if iteration % 20 == 19:
     
-                generate_image(iteration, _data)
+                generate_image(iteration)
                 saver.save(session, args.model_dir + '/wgangp_' + str(iteration) + '.cptk')
             # Write logs every 100 iters
             if (iteration < 5) or (iteration % 100 == 99):
