@@ -38,9 +38,8 @@ def parse_args():
     parser.add_argument('--OUTPUT_DIM', dest='OUTPUT_DIM', help='Number of pixels in MNIST (28*28)',type=int, default=64*64*3)
     parser.add_argument('--output_lenth', dest='output_lenth', help='lenth of the output images',type=int, default=64)
     parser.add_argument('--img_num', dest='img_num', help='the number of the output images', type=int, default=4096)
-    parser.add_argument('--model_dir', dest='model_dir', type=str, default='models',
-                        help='directory to save models') 
-    parser.add_argument('--restore_index', dest='restore_index', help='the index of file that stores the model', type=int, default=None)
+    parser.add_argument('--model_dir', type=str, default='models',
+                        help='directory to save models')
     args = parser.parse_args()
     return args
 
@@ -157,6 +156,7 @@ if __name__ == '__main__':
         disc_real = Discriminator(real_data)
         disc_fake = Discriminator(fake_data)
         
+        
         gen_params = lib.params_with_name('Generator')
         disc_params = lib.params_with_name('Discriminator')
         
@@ -241,8 +241,9 @@ if __name__ == '__main__':
     
         
         
+        
         # For saving samples
-        fixed_noise = tf.random_uniform([128, 128], minval=-1.0, maxval=1.0, dtype=tf.float32, seed=1, name=None)
+        fixed_noise = tf.constant(np.random.normal(size=(128, 128)).astype('float32'))
         fixed_noise_samples = Generator(128, noise=fixed_noise)          
         def generate_image(iteration):
             samples = session.run(fixed_noise_samples)
@@ -269,20 +270,14 @@ if __name__ == '__main__':
         
         saver = tf.train.Saver()
         session.run(tf.initialize_all_variables())
-        index = 0
-        if args.restore_index:
-            saver.restore(session,args.model_dir+"/wgangp_"+str(args.restore_index)+".cptk")
-            index = index + args.restore_index + 1
         
-        
-        
+        saver.restore(session,"models/wgangp_20899.cptk")
         gen = inf_train_gen()
 
  
         for iteration in range(args.ITERS):
             start_time = time.time()
-            
-            
+    
             if iteration > 0:
                 _ = session.run(gen_train_op)
     
@@ -302,15 +297,18 @@ if __name__ == '__main__':
             lib.plot.plot('train disc cost', _disc_cost)
             lib.plot.plot('time', time.time() - start_time)
             
-            print("iter: %d   disc_cost: %f"%(index,_disc_cost))
+            print("iter: %d   disc_cost: %f"%(iteration,_disc_cost))
             # Calculate dev loss and generate samples every 100 iters
-            if index % 20 == 19:
-                generate_image(index)
-                
+            if iteration % 20 == 19:
+    
+                generate_image(iteration)
+                saver.save(session, args.model_dir + '/wgangp_' + str(iteration) + '.cptk')
             # Write logs every 100 iters
-            if (index < 5) or (index % 100 == 99):
+            if (iteration < 5) or (iteration % 20 == 19):
                 lib.plot.flush()
-                saver.save(session, args.model_dir + '/wgangp_' + str(index) + '.cptk')
     
             lib.plot.tick()
-            index = index + 1
+
+
+
+

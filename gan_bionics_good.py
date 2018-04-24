@@ -2,6 +2,7 @@ import os, sys
 sys.path.append(os.getcwd())
 
 import time
+import functools
 
 import matplotlib
 matplotlib.use('Agg')
@@ -16,6 +17,7 @@ import tflib.ops.conv2d
 import tflib.ops.batchnorm
 import tflib.ops.deconv2d
 import tflib.save_images
+import tflib.ops.layernorm
 import tflib.mnist
 import tflib.plot
 import argparse
@@ -38,7 +40,7 @@ def parse_args():
     parser.add_argument('--OUTPUT_DIM', dest='OUTPUT_DIM', help='Number of pixels in MNIST (28*28)',type=int, default=64*64*3)
     parser.add_argument('--output_lenth', dest='output_lenth', help='lenth of the output images',type=int, default=64)
     parser.add_argument('--img_num', dest='img_num', help='the number of the output images', type=int, default=4096)
-    parser.add_argument('--model_dir', dest='model_dir', type=str, default='models',
+    parser.add_argument('--model_dir', dest='model_dir', type=str, default='models_good',
                         help='directory to save models') 
     parser.add_argument('--restore_index', dest='restore_index', help='the index of file that stores the model', type=int, default=None)
     args = parser.parse_args()
@@ -74,73 +76,105 @@ if __name__ == '__main__':
             initialization='he'
         )
         return LeakyReLU(output)
+        
+    def Normalize(name, axes, inputs):
+        if ('Discriminator' in name) and (args.MODE == 'wgan-gp'):
+            if axes != [0,2,3]:
+                raise Exception('Layernorm over non-standard axes is unsupported')
+            return lib.ops.layernorm.Layernorm(name,[1,2,3],inputs)
+        else:
+            return lib.ops.batchnorm.Batchnorm(name,axes,inputs,fused=True)
+
+    def ConvMeanPool(name, input_dim, output_dim, filter_size, inputs, he_init=True, biases=True):
+        output = lib.ops.conv2d.Conv2D(name, input_dim, output_dim, filter_size, inputs, he_init=he_init, biases=biases)
+        output = tf.add_n([output[:,:,::2,::2], output[:,:,1::2,::2], output[:,:,::2,1::2], output[:,:,1::2,1::2]]) / 4.
+        return output
     
-    def Generator(n_samples, noise=None, dim=args.DIM, bn=True, nonlinearity=tf.nn.relu):
-        lib.ops.conv2d.set_weights_stdev(0.02)
-        lib.ops.deconv2d.set_weights_stdev(0.02)
-        lib.ops.linear.set_weights_stdev(0.02)
+    def MeanPoolConv(name, input_dim, output_dim, filter_size, inputs, he_init=True, biases=True):
+        output = inputs
+        output = tf.add_n([output[:,:,::2,::2], output[:,:,1::2,::2], output[:,:,::2,1::2], output[:,:,1::2,1::2]]) / 4.
+        output = lib.ops.conv2d.Conv2D(name, input_dim, output_dim, filter_size, output, he_init=he_init, biases=biases)
+        return output
     
+    def UpsampleConv(name, input_dim, output_dim, filter_size, inputs, he_init=True, biases=True):
+        output = inputs
+        output = tf.concat([output, output, output, output], axis=1)
+        output = tf.transpose(output, [0,2,3,1])
+        output = tf.depth_to_space(output, 2)
+        output = tf.transpose(output, [0,3,1,2])
+        output = lib.ops.conv2d.Conv2D(name, input_dim, output_dim, filter_size, output, he_init=he_init, biases=biases)
+        return output
+
+    def ResidualBlock(name, input_dim, output_dim, filter_size, inputs, resample=None, he_init=True):
+        """
+        resample: None, 'down', or 'up'
+        """
+        if resample=='down':
+            conv_shortcut = MeanPoolConv
+            conv_1        = functools.partial(lib.ops.conv2d.Conv2D, input_dim=input_dim, output_dim=input_dim)
+            conv_2        = functools.partial(ConvMeanPool, input_dim=input_dim, output_dim=output_dim)
+        elif resample=='up':
+            conv_shortcut = UpsampleConv
+            conv_1        = functools.partial(UpsampleConv, input_dim=input_dim, output_dim=output_dim)
+            conv_2        = functools.partial(lib.ops.conv2d.Conv2D, input_dim=output_dim, output_dim=output_dim)
+        elif resample==None:
+            conv_shortcut = lib.ops.conv2d.Conv2D
+            conv_1        = functools.partial(lib.ops.conv2d.Conv2D, input_dim=input_dim,  output_dim=input_dim)
+            conv_2        = functools.partial(lib.ops.conv2d.Conv2D, input_dim=input_dim, output_dim=output_dim)
+        else:
+            raise Exception('invalid resample value')
+    
+        if output_dim==input_dim and resample==None:
+            shortcut = inputs # Identity skip-connection
+        else:
+            shortcut = conv_shortcut(name+'.Shortcut', input_dim=input_dim, output_dim=output_dim, filter_size=1,
+                                     he_init=False, biases=True, inputs=inputs)
+    
+        output = inputs
+        output = Normalize(name+'.BN1', [0,2,3], output)
+        output = tf.nn.relu(output)
+        output = conv_1(name+'.Conv1', filter_size=filter_size, inputs=output, he_init=he_init, biases=False)
+        output = Normalize(name+'.BN2', [0,2,3], output)
+        output = tf.nn.relu(output)
+        output = conv_2(name+'.Conv2', filter_size=filter_size, inputs=output, he_init=he_init)
+    
+        return shortcut + output
+
+
+    
+    def Generator(n_samples, noise=None, dim=args.DIM, nonlinearity=tf.nn.relu):
         if noise is None:
-            #noise = tf.random_normal([n_samples, 128])
-            noise = tf.random_uniform([n_samples, 128], minval=-1.0, maxval=1.0, dtype=tf.float32, seed=None, name=None)
+            noise = tf.random_normal([n_samples, 128])
     
         output = lib.ops.linear.Linear('Generator.Input', 128, 4*4*8*dim, noise)
         output = tf.reshape(output, [-1, 8*dim, 4, 4])
     
-        output = nonlinearity(output)
+        output = ResidualBlock('Generator.Res1', 8*dim, 8*dim, 3, output, resample='up')
+        output = ResidualBlock('Generator.Res2', 8*dim, 4*dim, 3, output, resample='up')
+        output = ResidualBlock('Generator.Res3', 4*dim, 2*dim, 3, output, resample='up')
+        output = ResidualBlock('Generator.Res4', 2*dim, 1*dim, 3, output, resample='up')
     
-        output = lib.ops.deconv2d.Deconv2D('Generator.2', 8*dim, 4*dim, 5, output)
-    
-        output = nonlinearity(output)
-    
-        output = lib.ops.deconv2d.Deconv2D('Generator.3', 4*dim, 2*dim, 5, output)
-    
-        output = nonlinearity(output)
-    
-        output = lib.ops.deconv2d.Deconv2D('Generator.4', 2*dim, dim, 5, output)
-    
-        output = nonlinearity(output)
-    
-        output = lib.ops.deconv2d.Deconv2D('Generator.5', dim, 3, 5, output)
+        output = Normalize('Generator.OutputN', [0,2,3], output)
+        output = tf.nn.relu(output)
+        output = lib.ops.conv2d.Conv2D('Generator.Output', 1*dim, 3, 3, output)
         output = tf.tanh(output)
-    
-        lib.ops.conv2d.unset_weights_stdev()
-        lib.ops.deconv2d.unset_weights_stdev()
-        lib.ops.linear.unset_weights_stdev()
     
         return tf.reshape(output, [-1, args.OUTPUT_DIM])
     
     
-    def Discriminator(inputs, dim=args.DIM, bn=True, nonlinearity=LeakyReLU):
+    def Discriminator(inputs, dim=args.DIM):
         output = tf.reshape(inputs, [-1, 3, 64, 64])
+        output = lib.ops.conv2d.Conv2D('Discriminator.Input', 3, dim, 3, output, he_init=False)
     
-        lib.ops.conv2d.set_weights_stdev(0.02)
-        lib.ops.deconv2d.set_weights_stdev(0.02)
-        lib.ops.linear.set_weights_stdev(0.02)
-    
-        output = lib.ops.conv2d.Conv2D('Discriminator.1', 3, dim, 5, output, stride=2)
-        output = nonlinearity(output)
-    
-        output = lib.ops.conv2d.Conv2D('Discriminator.2', dim, 2*dim, 5, output, stride=2)
-    
-        output = nonlinearity(output)
-    
-        output = lib.ops.conv2d.Conv2D('Discriminator.3', 2*dim, 4*dim, 5, output, stride=2)
-    
-        output = nonlinearity(output)
-    
-        output = lib.ops.conv2d.Conv2D('Discriminator.4', 4*dim, 8*dim, 5, output, stride=2)
-    
-        output = nonlinearity(output)
+        output = ResidualBlock('Discriminator.Res1', dim, 2*dim, 3, output, resample='down')
+        output = ResidualBlock('Discriminator.Res2', 2*dim, 4*dim, 3, output, resample='down')
+        output = ResidualBlock('Discriminator.Res3', 4*dim, 8*dim, 3, output, resample='down')
+        output = ResidualBlock('Discriminator.Res4', 8*dim, 8*dim, 3, output, resample='down')
     
         output = tf.reshape(output, [-1, 4*4*8*dim])
         output = lib.ops.linear.Linear('Discriminator.Output', 4*4*8*dim, 1, output)
     
-        lib.ops.conv2d.unset_weights_stdev()
-        lib.ops.deconv2d.unset_weights_stdev()
-        lib.ops.linear.unset_weights_stdev()
-    
-        return tf.reshape(output, [-1])    
+        return tf.reshape(output, [-1])     
     
 
     
@@ -241,8 +275,9 @@ if __name__ == '__main__':
     
         
         
+        
         # For saving samples
-        fixed_noise = tf.random_uniform([128, 128], minval=-1.0, maxval=1.0, dtype=tf.float32, seed=1, name=None)
+        fixed_noise = tf.constant(np.random.normal(size=(128, 128)).astype('float32'))
         fixed_noise_samples = Generator(128, noise=fixed_noise)          
         def generate_image(iteration):
             samples = session.run(fixed_noise_samples)
