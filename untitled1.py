@@ -23,6 +23,7 @@ import tflib.plot
 import argparse
 import load_image
 import PIL.Image as Image
+import cv2
 
 
 
@@ -45,7 +46,7 @@ def parse_args():
                         help='directory to save models') 
     parser.add_argument('--restore_index', dest='restore_index', help='the index of file that stores the model', type=int, default=None)
     parser.add_argument('--nc', dest='nc', help='the number of channels', type=int, default=3)
-    parser.add_argument('--npx', dest='npx', help='64*64', type=int, default=3)
+    parser.add_argument('--npx', dest='npx', help='64*64', type=int, default=64)
 
 
     parser.add_argument('--edge', dest='edge', help='whether to consider egde', default='No', type=str)
@@ -79,13 +80,13 @@ if __name__ == '__main__':
         
     def transform(x, nc=3):
         if nc == 3:
-            return 2*((tf.cast(x, tf.float32)/255.)-.5)
+            return 2*((tf.cast(tf.transpose(x,[0,3,1,2]), tf.float32)/255.)-.5)
         else:
-            return (tf.cast(x, tf.float32)/255.)
+            return (tf.cast(tf.transpose(x,[0,3,1,2]), tf.float32)/255.)
 
 
     def transform_mask( x):
-        return (tf.cast(x, tf.float32)/255.) 
+        return (tf.cast(tf.transpose(x,[0,3,1,2]), tf.float32)/255.) 
     
     if args.edge == 'Yes':
         BS = 4 if args.nc == 1 else 8
@@ -128,6 +129,29 @@ if __name__ == '__main__':
         return out
 
 
+    def LeakyReLU(x, alpha=0.2):
+        return tf.maximum(alpha*x, x)
+    
+    def ReLULayer(name, n_in, n_out, inputs):
+        output = lib.ops.linear.Linear(
+            name+'.Linear', 
+            n_in, 
+            n_out, 
+            inputs,
+            initialization='he'
+        )
+        return tf.nn.relu(output)
+    
+    def LeakyReLULayer(name, n_in, n_out, inputs):
+        output = lib.ops.linear.Linear(
+            name+'.Linear', 
+            n_in, 
+            n_out, 
+            inputs,
+            initialization='he'
+        )
+        return LeakyReLU(output)
+    
     def Generator(n_samples, noise=None, dim=args.DIM, bn=True, nonlinearity=tf.nn.relu):
         lib.ops.conv2d.set_weights_stdev(0.02)
         lib.ops.deconv2d.set_weights_stdev(0.02)
@@ -162,21 +186,53 @@ if __name__ == '__main__':
         lib.ops.linear.unset_weights_stdev()
     
         return tf.reshape(output, [-1, args.OUTPUT_DIM])
+    
+    
+    def Discriminator(inputs, dim=args.DIM, bn=True, nonlinearity=LeakyReLU):
+        output = tf.reshape(inputs, [-1, 3, 64, 64])
+    
+        lib.ops.conv2d.set_weights_stdev(0.02)
+        lib.ops.deconv2d.set_weights_stdev(0.02)
+        lib.ops.linear.set_weights_stdev(0.02)
+    
+        output = lib.ops.conv2d.Conv2D('Discriminator.1', 3, dim, 5, output, stride=2)
+        output = nonlinearity(output)
+    
+        output = lib.ops.conv2d.Conv2D('Discriminator.2', dim, 2*dim, 5, output, stride=2)
+    
+        output = nonlinearity(output)
+    
+        output = lib.ops.conv2d.Conv2D('Discriminator.3', 2*dim, 4*dim, 5, output, stride=2)
+    
+        output = nonlinearity(output)
+    
+        output = lib.ops.conv2d.Conv2D('Discriminator.4', 4*dim, 8*dim, 5, output, stride=2)
+    
+        output = nonlinearity(output)
+    
+        output = tf.reshape(output, [-1, 4*4*8*dim])
+        output = lib.ops.linear.Linear('Discriminator.Output', 4*4*8*dim, 1, output)
+    
+        lib.ops.conv2d.unset_weights_stdev()
+        lib.ops.deconv2d.unset_weights_stdev()
+        lib.ops.linear.unset_weights_stdev()
+    
+        return tf.reshape(output, [-1])    
         
         
-        
+    
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as session:
 
 
-        x_c = tf.placeholder(tf.float32, shape=[args.BATCH_SIZE, 3, 64, 64])
-        m_c = tf.placeholder(tf.float32, shape=[args.BATCH_SIZE, 1, 64, 64])        
-        x_c = transform(x_c[np.newaxis, :], args.nc)
-        m_c = transform_mask(m_c[np.newaxis, :])
-        
-        shape = [args.BATCH_SIZE, 1, 1, 1]
-        x_c = np.tile(x_c, shape)
-        m_c = np.tile(m_c, shape)
+        x_c_o = tf.placeholder(tf.float32, shape=[64, 64, 3])
+        m_c_o = tf.placeholder(tf.float32, shape=[64, 64, 1])        
+        x_c = transform(x_c_o[np.newaxis, :], args.nc)
+        m_c = transform_mask(m_c_o[np.newaxis, :])
 
+        shape = [args.BATCH_SIZE, 1, 1, 1]
+        x_c = tf.tile(x_c, shape)
+        m_c = tf.tile(m_c, shape)
+  
         
         if args.edge == 'Yes':
             x_e = tf.placeholder(tf.int32, shape=[args.BATCH_SIZE, 3, 64, 64])
@@ -185,11 +241,18 @@ if __name__ == '__main__':
         if args.z0 == 'Yes':
             z0 = tf.placeholder(tf.float32, shape=[1,128])
             
-        z = tf.random_uniform([128, 128], minval=-1.0, maxval=1.0, dtype=tf.float32, seed=None, name=None)
+        z = tf.Variable(tf.random_uniform([128, 128], minval=-1.0, maxval=1.0, dtype=tf.float32, seed=None, name=None), name="z")  
+
         gx = Generator(128, noise=z)
-        gx3 = tf.reshape(gx,[args.BATCH_SIZE, 3, 64, 64])
-        mm_c = np.tile(m_c, (1, int(gx3.shape[1]), 1, 1))#tile gray to rgb
-        color_all = tf.reduce_mean(tf.sqrt(gx3 - x_c) * mm_c, axis=(1, 2, 3)) / (tf.reduce_mean(m_c, axis=(1, 2, 3)) + 1e-5)
+        gx3 = tf.reshape((gx+1.)*(255.99/2),[args.BATCH_SIZE, 3, 64, 64])
+
+
+        mm_c = tf.tile(m_c, [1, int(gx3.shape[1]), 1, 1])#tile gray to rgb
+
+
+        test = tf.reduce_mean(tf.sqrt(gx3 - x_c) * mm_c, axis=[1, 2, 3])
+        color_all = tf.reduce_mean(tf.sqrt(gx3 - x_c) * mm_c, axis=[1, 2, 3]) / (tf.reduce_mean(m_c, axis=[1, 2, 3]) + 1e-5)
+        cost_all = tf.reduce_sum(color_all)
         
         if args.edge == 'Yes':
             gx_edge = hog.get_hog(gx3)
@@ -209,12 +272,13 @@ if __name__ == '__main__':
                      ).minimize(cost_all, var_list=[z])
     
     
-    
-        saver = tf.train.Saver()
-        session.run(tf.initialize_all_variables())
-        if args.restore_index:
-            saver.restore(session,args.model_dir+"/wgangp_"+str(args.restore_index)+".cptk")
 
+        saver = tf.train.import_meta_graph(args.model_dir+"/wgangp_"+str(args.restore_index)+".cptk.meta")
+
+
+        session.run(tf.initialize_all_variables())
+
+        saver.restore(session, args.model_dir+"/wgangp_"+str(args.restore_index)+".cptk")
 
 
         for iteration in range(args.ITERS):
@@ -224,9 +288,9 @@ if __name__ == '__main__':
             if args.edge == 'Yes':
                 im_edge = preprocess_image(args.input_edge, args.npx)
                         
-            feed_dict = {x_c : im_color, m_c : im_color_mask}
+            feed_dict = {x_c_o : im_color, m_c_o : im_color_mask[... ,[0]]}
 
-            _cost_all, _ = session.run([cost_all, invert_train_op], feed_dict=feed_dict)
+            _gx ,_cost_all, _ = session.run([gx,cost_all, invert_train_op], feed_dict=feed_dict)
 
  
 
@@ -237,10 +301,11 @@ if __name__ == '__main__':
             print("iter: %d   disc_cost: %f"%(iteration,_cost_all))
             # Calculate dev loss and generate samples every 100 iters
             if iteration % 20 == 19:
-
-                _gx = session.run(gx, feed_dict={z: z})
+                _ggx = session.run(Generator(128))
+                _ggx = ((_ggx+1.)*(255.99/2)).astype('int32')
                 _gx = ((_gx+1.)*(255.99/2)).astype('int32')
                 lib.save_images.save_images(_gx.reshape((args.BATCH_SIZE, 3, 64, 64)), 'opt.png') 
+                lib.save_images.save_images(_ggx.reshape((args.BATCH_SIZE, 3, 64, 64)), 'opt_1.png') 
 
                 
 
