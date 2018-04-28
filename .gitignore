@@ -6,4 +6,4 @@ push
 *.jpg
 *.png
 
-models/
+/models

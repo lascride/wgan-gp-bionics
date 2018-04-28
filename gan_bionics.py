@@ -304,13 +304,14 @@ if __name__ == '__main__':
             
             print("iter: %d   disc_cost: %f"%(index,_disc_cost))
             # Calculate dev loss and generate samples every 100 iters
-            if index % 20 == 19:
+            if index % 2000 == 1999:
                 generate_image(index)
-                
+                saver.save(session, args.model_dir + '/wgangp_' + str(index) + '.cptk')
+                #saver.save(session, 'wgangp_bionics' + '.cptk')
             # Write logs every 100 iters
             if (index < 5) or (index % 100 == 99):
                 lib.plot.flush()
-                saver.save(session, args.model_dir + '/wgangp_' + str(index) + '.cptk')
+
     
             lib.plot.tick()
             index = index + 1
