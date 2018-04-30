@@ -29,6 +29,8 @@ import argparse
 import load_image
 import PIL.Image as Image
 import cv2
+import scipy.misc
+from scipy.misc import imsave
 
 lib.print_model_settings(locals().copy())
 
@@ -42,7 +44,7 @@ def parse_args():
     parser.add_argument('--BATCH_SIZE', dest='BATCH_SIZE', help='Batch size',type=int, default=128)
     parser.add_argument('--CRITIC_ITERS', dest='CRITIC_ITERS', help='For WGAN and WGAN-GP, number of critic iters per gen iter',type=int, default=5)
     parser.add_argument('--LAMBDA', dest='LAMBDA', help='Gradient penalty lambda hyperparameter',type=int, default=10)
-    parser.add_argument('--ITERS', dest='ITERS', help='How many generator iterations to train for',type=int, default=2000)
+    parser.add_argument('--ITERS', dest='ITERS', help='How many generator iterations to train for',type=int, default=100)
     parser.add_argument('--OUTPUT_DIM', dest='OUTPUT_DIM', help='Number of pixels in MNIST (28*28)',type=int, default=64*64*3)
     parser.add_argument('--output_lenth', dest='output_lenth', help='lenth of the output images',type=int, default=64)
     parser.add_argument('--img_num', dest='img_num', help='the number of the output images', type=int, default=4096)
@@ -349,41 +351,59 @@ if __name__ == '__main__':
       
             
             if args.edge == 'Yes':
-                x_e = tf.placeholder(tf.int32, shape=[args.BATCH_SIZE, 3, 64, 64])
-                m_e = tf.placeholder(tf.int32, shape=[args.BATCH_SIZE, 1, 64, 64])
+                x_e_o = tf.placeholder(tf.float32, shape=[64, 64, 3])
+                m_e_o = tf.placeholder(tf.float32, shape=[64, 64, 1]) 
+                x_e = transform(x_e_o[np.newaxis, :], args.nc)
+                m_e = transform_mask(m_e_o[np.newaxis, :])
+    
+                x_e = tf.tile(x_e, shape)
+                m_e = tf.tile(m_e, shape)
     
             if args.z0 == 'Yes':
                 z0 = tf.placeholder(tf.float32, shape=[1,128])
                 
-            z = tf.Variable(tf.random_uniform([128, 128], minval=-1.0, maxval=1.0, dtype=tf.float32, seed=None, name=None), name="z")  
-    
-            gx = Generator(128, noise=z)
-            gx3 = tf.reshape((gx+1.)*(255.99/2),[args.BATCH_SIZE, 3, 64, 64])
-    
-    
-            mm_c = tf.tile(m_c, [1, int(gx3.shape[1]), 1, 1])#tile gray to rgb
-    
-    
-            test = tf.reduce_mean(tf.sqrt(gx3 - x_c) * mm_c, axis=[1, 2, 3])
-            color_all = tf.reduce_mean(tf.sqrt(gx3 - x_c) * mm_c, axis=[1, 2, 3]) / (tf.reduce_mean(m_c, axis=[1, 2, 3]) + 1e-5)
-            cost_all = tf.reduce_sum(color_all)
             
-            if args.edge == 'Yes':
+            z = tf.Variable(tf.random_uniform([args.BATCH_SIZE, 128], minval=-1.0, maxval=1.0, dtype=tf.float32, seed=None, name=None), name="z")  
+            z_t = tf.nn.tanh(z)   
+
+            gx = Generator(args.BATCH_SIZE, noise=z_t)
+            gx3 = tf.reshape((gx+1.)*(255.99/2),[args.BATCH_SIZE, 3, 64, 64]) 
+            mm_c = tf.tile(m_c, [1, int(gx3.shape[1]), 1, 1])#tile gray to rgb
+            
+
+            color_all = tf.reduce_mean(tf.square(gx3 - x_c) * mm_c, axis=[1, 2, 3]) / (tf.reduce_mean(m_c, axis=[1, 2, 3]) + 1e-5)
+            
+            
+            if args.edge == 'Yes':            
                 gx_edge = hog.get_hog(gx3)
                 x_edge = hog.get_hog(x_e)
-                mm_e = np.tile(m_e, (1, gx_edge.shape[1], 1, 1))
-                edge_all = tf.reduce_mean(tf.sqrt(x_edge - gx_edge) * mm_e, axis=(1, 2, 3)) / (tf.reduce_mean(m_e, axis=(1, 2, 3)) + 1e-5)
-                rec_all = color_all + edge_all * 0.2
+                mm_e = tf.tile(m_e, [1, int(gx_edge.shape[1]), 1, 1])
+                sum_e = tf.reduce_sum(tf.abs(mm_e))
+                sum_x_edge = tf.reduce_sum(tf.abs(x_edge))
+                edge_all = tf.reduce_mean(tf.square(x_edge - gx_edge) * mm_e, axis=[1, 2, 3]) / (tf.reduce_mean(m_e, axis=[1, 2, 3]) + 1e-5)            
+            else:
+                edge_all = 0
+            
+
+            
+
                 
             if args.z0 == 'Yes':
                 z_const = 5.0
-                init_all = tf.reduce_mean(tf.sqrt(z0 - z)) * z_const
-                cost_all = rec_all + init_all
+                init_all = tf.reduce_mean(tf.square(z0 - z)) * z_const
+            else:
+                init_all = 0
+        
+        
+            cost_all = color_all + 0.2 * edge_all + 5.0 * init_all
+        
+            cost = tf.reduce_sum(color_all)
+
         
             invert_train_op = tf.train.AdamOptimizer(
-                             learning_rate=0.001, 
+                             learning_rate=0.1, 
                              beta1=0.9
-                         ).minimize(cost_all, var_list=[z])
+                         ).minimize(cost, var_list=[z])
     
             
             uninit_vars = []
@@ -394,8 +414,8 @@ if __name__ == '__main__':
                     uninit_vars.append(var)
     
             init_new_vars_op = tf.initialize_variables(uninit_vars)
-            print("uninit")
-            print(uninit_vars)
+            #print("uninit")
+            #print(uninit_vars)
             session.run(init_new_vars_op)
 
         
@@ -445,14 +465,19 @@ if __name__ == '__main__':
                 start_time = time.time()
                 im_color = preprocess_image('./pics/'+args.input_color_name+'.png', args.npx)
                 #im_color_mask = preprocess_image(args.input_color_mask, args.npx)
-                cv2.imwrite(args.opt_dir+'/im_color'+'.png',im_color)
+                imsave(args.opt_dir+'/im_color'+'.png',im_color)
                 #cv2.imwrite(args.opt_dir+'/im_colormask'+'.png',im_color_mask)
                 im_color_mask_mask = cv2.cvtColor(im_color, cv2.COLOR_RGB2GRAY)
                 #cv2.imwrite(args.opt_dir+'/im_colormask_mask1'+'.png',im_color_mask_mask)
                 ret,im_color_mask_mask = cv2.threshold(im_color_mask_mask,1,255,cv2.THRESH_BINARY)
                 #cv2.imwrite(args.opt_dir+'/im_colormask'+'.png',im_color_mask_mask)
                 im_color_mask_mask = cv2.cvtColor(im_color_mask_mask, cv2.COLOR_GRAY2RGB)
-                cv2.imwrite(args.opt_dir+'/im_colormask'+'.png',im_color_mask_mask)
+                imsave(args.opt_dir+'/im_colormask'+'.png',im_color_mask_mask)
+                im_color = np.rot90(im_color,2)
+                #cv2.imwrite(args.opt_dir+'/im_color_rot'+'.png',im_color)
+                
+                im_color_mask_mask = np.rot90(im_color_mask_mask,2)
+                #cv2.imwrite(args.opt_dir+'/im_colormask_rot'+'.png',im_color_mask_mask)
 
         
                 #print(im_color_mask_mask.shape)
@@ -467,22 +492,27 @@ if __name__ == '__main__':
                             
                 feed_dict = {x_c_o : im_color, m_c_o : im_color_mask_mask[... ,[0]]}
     
-                _gx ,_cost_all, _ = session.run([gx,cost_all, invert_train_op], feed_dict=feed_dict)
+                _z_t,_gx, _cost, _cost_all, _ = session.run([z_t,gx,cost,cost_all, invert_train_op], feed_dict=feed_dict)
     
-     
+                order = np.argsort(_cost_all)
+                _gx_sort = _gx[order]
     
-                lib.plot_opt.plot('cost_all', _cost_all)
+                lib.plot_opt.plot('cost', _cost)
                 lib.plot_opt.plot('time', time.time() - start_time)    
-    
-
-                print("iter: %d ; cost_all: %f"%(iteration,_cost_all))
+               
+                #print(_z_t[0])
+                print("iter: %d ; cost_all: %f"%(iteration,_cost))
                 # Calculate dev loss and generate samples every 100 iters
-                if (iteration % 100 == 99) or (iteration==0):
+                if (iteration % 10 == 9) or (iteration==0):
                     lib.plot_opt.flush()
                     #_ggx = session.run(Generator(128))
                     #_ggx = ((_ggx+1.)*(255.99/2)).astype('int32')
                     _gx = ((_gx+1.)*(255.99/2)).astype('int32')
-                    lib.save_images.save_images(_gx.reshape((args.BATCH_SIZE, 3, 64, 64)), args.opt_dir+'/opt_'+args.input_color_name+'_'+str(iteration)+'.png') 
+                    _gx_np = _gx.reshape((args.BATCH_SIZE, 3, 64, 64))
+                    _gx_tf = tf.reshape(_gx[order],[args.BATCH_SIZE, 3, 64, 64]).eval()
+                    lib.save_images.save_images(_gx_np, args.opt_dir+'/npopt_'+args.input_color_name+'_'+str(iteration)+'.png')
+                    lib.save_images.save_images(_gx_tf, args.opt_dir+'/tfopt_'+args.input_color_name+'_'+str(iteration)+'.png')
+
                     #lib.save_images.save_images(_ggx.reshape((args.BATCH_SIZE, 3, 64, 64)), 'opt+str_1.png') 
     
                 lib.plot_opt.tick()
