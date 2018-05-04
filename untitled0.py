@@ -31,6 +31,9 @@ import PIL.Image as Image
 import cv2
 import scipy.misc
 from scipy.misc import imsave
+from skimage import feature as ft
+import tf_hog 
+import hog
 
 lib.print_model_settings(locals().copy())
 
@@ -62,6 +65,7 @@ def parse_args():
     parser.add_argument('--z0', dest='z0', help='whether to consider z0', default='No', type=str)
     parser.add_argument('--input_color_name', dest='input_color_name', help='input color image name', default='input_color')
     parser.add_argument('--input_color_mask_name', dest='input_color_mask_name', help='input color mask name', default='input_color_mask')
+    parser.add_argument('--input_edge_name', dest='input_edge_name', help='input edge image name', default='input_edge')
 
     
     args = parser.parse_args()
@@ -77,33 +81,29 @@ if __name__ == '__main__':
     if not os.path.exists(args.opt_dir):
         os.makedirs(args.opt_dir)
 
-    def preprocess_constraints( constraints):
-        [im_c_o, mask_c_o, im_e_o, mask_e_o] = constraints
-        im_c = transform(im_c_o[np.newaxis, :], args.nc)
-        mask_c = transform_mask(mask_c_o[np.newaxis, :])
-        im_e = transform(im_e_o[np.newaxis, :], args.nc)
-        mask_t = transform_mask(mask_e_o[np.newaxis, :])
-        mask_e = hog.comp_mask(mask_t)
-        shape = [args.BATCH_SIZE, 1, 1, 1]
-        im_c_t = np.tile(im_c, shape)
-        mask_c_t = np.tile(mask_c, shape)
-        im_e_t = np.tile(im_e, shape)
-        mask_e_t = np.tile(mask_e, shape)
-        return [im_c_t, mask_c_t, im_e_t, mask_e_t]
+
         
-    def transform(x, nc=3):
-        if nc == 3:
-            return 2*((tf.cast(tf.transpose(x,[0,3,1,2]), tf.float32)/255.)-.5)
+    def transform(x, nc=3, trans = 'yes'):
+        if trans == 'yes':
+            if nc == 3:
+                return 2*((tf.cast(tf.transpose(x,[0,3,1,2]), tf.float32)/255.)-.5)
+            else:
+                return (tf.cast(tf.transpose(x,[0,3,1,2]), tf.float32)/255.)
         else:
-            return (tf.cast(tf.transpose(x,[0,3,1,2]), tf.float32)/255.)
+            if nc == 3:
+                return 2*((tf.cast(x, tf.float32)/255.)-.5)
+            else:
+                return (tf.cast(x, tf.float32)/255.)            
+            
+            
 
+    def transform_mask( x, trans = 'yes'):
+        if trans == 'yes':
+            return (tf.cast(tf.transpose(x,[0,3,1,2]), tf.float32)/255.) 
+        else:
+            return (tf.cast(x, tf.float32)/255.) 
+            
 
-    def transform_mask( x):
-        return (tf.cast(tf.transpose(x,[0,3,1,2]), tf.float32)/255.) 
-    
-    if args.edge == 'Yes':
-        BS = 4 if args.nc == 1 else 8
-        hog = HOGNet.HOGNet(use_bin=True, NO=8, BS=BS, nc=args.nc)
 
     if not os.path.exists(args.model_dir):
         os.makedirs(args.model_dir)
@@ -141,6 +141,27 @@ if __name__ == '__main__':
             initialization='he'
         )
         return LeakyReLU(output)
+    
+    
+    
+    def get_hog_raw(gx3):
+        gx_gray = np.mean(gx3,axis=1)
+        print(gx_gray.shape)
+        print(gx_gray[1,:,:].shape)
+        #imsave(args.opt_dir+'/test_hop'+'.png',gx_gray[1,:,:])
+
+        gx_edge = []
+        
+        for i in range(args.BATCH_SIZE):
+            Hog = hog.Hog_descriptor(gx_gray[i,:,:], cell_size=8, bin_size=8)
+            vector, image = Hog.extract()
+            #print(image.shape)
+            imsave(args.opt_dir+'/gray_'+str(i)+'.png',gx_gray[i,:,:])  
+            imsave(args.opt_dir+'/test_'+str(i)+'.png',image)
+            gx_edge.append(image[np.newaxis,np.newaxis,:])
+   
+        gx_edge = np.concatenate(gx_edge, axis=0)
+        return gx_edge
     
     def Generator(n_samples, noise=None, dim=args.DIM, bn=True, nonlinearity=tf.nn.relu):
         lib.ops.conv2d.set_weights_stdev(0.02)
@@ -342,7 +363,7 @@ if __name__ == '__main__':
 
             x_c_o = tf.placeholder(tf.float32, shape=[64, 64, 3])
             m_c_o = tf.placeholder(tf.float32, shape=[64, 64, 1])        
-            x_c = transform(x_c_o[np.newaxis, :], args.nc)
+            x_c = transform(x_c_o[np.newaxis, :], 3)
             m_c = transform_mask(m_c_o[np.newaxis, :])
     
             shape = [args.BATCH_SIZE, 1, 1, 1]
@@ -353,17 +374,33 @@ if __name__ == '__main__':
             if args.edge == 'Yes':
                 x_e_o = tf.placeholder(tf.float32, shape=[64, 64, 3])
                 m_e_o = tf.placeholder(tf.float32, shape=[64, 64, 1]) 
-                x_e = transform(x_e_o[np.newaxis, :], args.nc)
-                m_e = transform_mask(m_e_o[np.newaxis, :])
-    
-                x_e = tf.tile(x_e, shape)
-                m_e = tf.tile(m_e, shape)
+                
+                x_e = transform(x_e_o[np.newaxis, :], 1,trans='no')
+                m_e = transform_mask(m_e_o[np.newaxis, :],trans='no')
+                
+  
+                x_e = tf.tile(x_e, [args.BATCH_SIZE, 1, 1, 1])
+                m_e = tf.tile(m_e, [args.BATCH_SIZE, 1, 1, 1])
     
             if args.z0 == 'Yes':
                 z0 = tf.placeholder(tf.float32, shape=[1,128])
                 
             
             z = tf.Variable(tf.random_uniform([args.BATCH_SIZE, 128], minval=-1.0, maxval=1.0, dtype=tf.float32, seed=None, name=None), name="z")  
+           
+            uninit_vars = []
+            for var in tf.all_variables():
+                try:
+                    session.run(var)
+                except tf.errors.FailedPreconditionError:
+                    uninit_vars.append(var)
+    
+            init_new_vars_op = tf.initialize_variables(uninit_vars)
+            #print("uninit")
+            #print(uninit_vars)
+            session.run(init_new_vars_op)           
+           
+           
             z_t = tf.nn.tanh(z)   
 
             gx = Generator(args.BATCH_SIZE, noise=z_t)
@@ -374,13 +411,23 @@ if __name__ == '__main__':
             color_all = tf.reduce_mean(tf.square(gx3 - x_c) * mm_c, axis=[1, 2, 3]) / (tf.reduce_mean(m_c, axis=[1, 2, 3]) + 1e-5)
             
             
-            if args.edge == 'Yes':            
-                gx_edge = hog.get_hog(gx3)
-                x_edge = hog.get_hog(x_e)
-                mm_e = tf.tile(m_e, [1, int(gx_edge.shape[1]), 1, 1])
-                sum_e = tf.reduce_sum(tf.abs(mm_e))
-                sum_x_edge = tf.reduce_sum(tf.abs(x_edge))
-                edge_all = tf.reduce_mean(tf.square(x_edge - gx_edge) * mm_e, axis=[1, 2, 3]) / (tf.reduce_mean(m_e, axis=[1, 2, 3]) + 1e-5)            
+            if args.edge == 'Yes':
+                tf_hog = tf_hog.HOGNet(use_bin=True, NO=8, BS=8, nc=3)
+                gx_edge = tf_hog.get_hog(gx3)
+                x_edge = tf_hog.get_hog(x_e)
+                m_edge = tf_hog.comp_mask(m_e)
+                #gx_edge = get_hog_raw(gx3.eval())
+                #print(gx_edge.shape)
+                #print(gx3.eval().shape)
+                #assign_op = tf.assign(gx_edge, tf.convert_to_tensor(get_hog(gx3.eval()),dtype=tf.float32))
+
+
+                m_edge = tf.cast(m_edge,tf.float32)
+                mm_e = m_edge
+                
+                #sum_e = tf.reduce_sum(tf.abs(mm_e))
+                #sum_x_edge = tf.reduce_sum(tf.abs(x_edge))
+                edge_all = tf.reduce_mean(tf.square(x_edge - gx_edge) * mm_e, axis=[1, 2, 3]) / (tf.reduce_mean(m_edge, axis=[1, 2, 3]) + 1e-5)            
             else:
                 edge_all = 0
             
@@ -397,11 +444,11 @@ if __name__ == '__main__':
         
             cost_all = color_all + 0.2 * edge_all + 5.0 * init_all
         
-            cost = tf.reduce_sum(color_all)
+            cost = tf.reduce_sum(cost_all)
 
         
             invert_train_op = tf.train.AdamOptimizer(
-                             learning_rate=0.1, 
+                             learning_rate=0.01, 
                              beta1=0.9
                          ).minimize(cost, var_list=[z])
     
@@ -416,7 +463,7 @@ if __name__ == '__main__':
             init_new_vars_op = tf.initialize_variables(uninit_vars)
             #print("uninit")
             #print(uninit_vars)
-            session.run(init_new_vars_op)
+            session.run(init_new_vars_op)    
 
         
         
@@ -461,50 +508,86 @@ if __name__ == '__main__':
                 index = index + 1
                 
         if args.to_do == "opt":
+            writer = tf.summary.FileWriter("logs", session.graph)
+            im_color = preprocess_image('./pics/'+args.input_color_name+'.png', args.npx)
+         
+            #im_color_mask = preprocess_image(args.input_color_mask, args.npx)
+            imsave(args.opt_dir+'/im_color'+'.png',im_color)
+            #cv2.imwrite(args.opt_dir+'/im_colormask'+'.png',im_color_mask)
+            im_color_mask_mask = cv2.cvtColor(im_color, cv2.COLOR_RGB2GRAY)
+            #cv2.imwrite(args.opt_dir+'/im_colormask_mask1'+'.png',im_color_mask_mask)
+            ret,im_color_mask_mask = cv2.threshold(im_color_mask_mask,1,255,cv2.THRESH_BINARY)
+            #cv2.imwrite(args.opt_dir+'/im_colormask'+'.png',im_color_mask_mask)
+            im_color_mask_mask = cv2.cvtColor(im_color_mask_mask, cv2.COLOR_GRAY2RGB)
+            imsave(args.opt_dir+'/im_colormask'+'.png',im_color_mask_mask)
+            im_color = np.rot90(im_color,2)
+            #cv2.imwrite(args.opt_dir+'/im_color_rot'+'.png',im_color)
+            
+            im_color_mask_mask = np.rot90(im_color_mask_mask,2)
+            #cv2.imwrite(args.opt_dir+'/im_colormask_rot'+'.png',im_color_mask_mask)
+
+    
+            #print(im_color_mask_mask.shape)
+
+           # color = Image.open(args.input_color)
+            #color_mask = Image.open(args.input_color_mask)
+           # color.save(args.opt_dir+'/color'+'.png')
+          #  color_mask.save(args.opt_dir+'/colormask'+'.png')
+           # print("hahaahahha")
+            if args.edge == 'Yes':
+                im_edge = preprocess_image('./pics/'+args.input_edge_name+'.png', args.npx)
+                im_edge_mask = im_edge[...,[0]]
+                #print(im_edge_mask.shape)
+                #im_edge_mask = im_edge[...,[0]].reshape((64,64))
+                #print(im_edge_mask.shape)
+
+                #Hog_input = hog.Hog_descriptor(im_edge_mask, cell_size=8, bin_size=8)           
+                #_, im_edge_edge = Hog_input.extract()
+                imsave(args.opt_dir+'/im_edge'+'.png',im_edge)
+                imsave(args.opt_dir+'/im_edge_mask'+'.png',im_edge_mask.reshape((64,64)))
+                #imsave(args.opt_dir+'/im_edge_edge'+'.png',im_edge_edge)
+                #im_edge_edge = im_edge_edge[:,:,np.newaxis]
+                #im_edge_mask = im_edge_mask[:,:,np.newaxis]
+                
+               # print(im_edge_edge.shape)
+                #print(im_edge_mask.shape)
             for iteration in range(args.ITERS):
                 start_time = time.time()
-                im_color = preprocess_image('./pics/'+args.input_color_name+'.png', args.npx)
-                #im_color_mask = preprocess_image(args.input_color_mask, args.npx)
-                imsave(args.opt_dir+'/im_color'+'.png',im_color)
-                #cv2.imwrite(args.opt_dir+'/im_colormask'+'.png',im_color_mask)
-                im_color_mask_mask = cv2.cvtColor(im_color, cv2.COLOR_RGB2GRAY)
-                #cv2.imwrite(args.opt_dir+'/im_colormask_mask1'+'.png',im_color_mask_mask)
-                ret,im_color_mask_mask = cv2.threshold(im_color_mask_mask,1,255,cv2.THRESH_BINARY)
-                #cv2.imwrite(args.opt_dir+'/im_colormask'+'.png',im_color_mask_mask)
-                im_color_mask_mask = cv2.cvtColor(im_color_mask_mask, cv2.COLOR_GRAY2RGB)
-                imsave(args.opt_dir+'/im_colormask'+'.png',im_color_mask_mask)
-                im_color = np.rot90(im_color,2)
-                #cv2.imwrite(args.opt_dir+'/im_color_rot'+'.png',im_color)
-                
-                im_color_mask_mask = np.rot90(im_color_mask_mask,2)
-                #cv2.imwrite(args.opt_dir+'/im_colormask_rot'+'.png',im_color_mask_mask)
 
-        
-                #print(im_color_mask_mask.shape)
-
-               # color = Image.open(args.input_color)
-                #color_mask = Image.open(args.input_color_mask)
-               # color.save(args.opt_dir+'/color'+'.png')
-              #  color_mask.save(args.opt_dir+'/colormask'+'.png')
 
                 if args.edge == 'Yes':
-                    im_edge = preprocess_image(args.input_edge, args.npx)
-                            
-                feed_dict = {x_c_o : im_color, m_c_o : im_color_mask_mask[... ,[0]]}
-    
-                _z_t,_gx, _cost, _cost_all, _ = session.run([z_t,gx,cost,cost_all, invert_train_op], feed_dict=feed_dict)
-    
+                    feed_dict = {x_c_o : im_color, m_c_o : im_color_mask_mask[... ,[0]], x_e_o:im_edge, m_e_o: im_edge_mask}
+                else:
+                    feed_dict = {x_c_o : im_color, m_c_o : im_color_mask_mask[... ,[0]]}
+
+                #test = session.run(x_e,feed_dict={x_e_o:im_edge_edge,m_e_o: im_edge_mask})
+                #print(test.shape)
+                #_gx_edge = session.run(gx_edge)
+                #print(_gx_edge)
+                if args.edge == 'Yes':
+                    _m_edge,_edge_all,_z_t,_gx, _cost, _cost_all, _ = session.run([m_edge,edge_all,z_t,gx,cost,cost_all, invert_train_op], feed_dict=feed_dict)
+                    print(_edge_all)
+                    print('hah')
+                    print(_cost_all)
+                else:
+                    _z_t,_gx, _cost, _cost_all, _ = session.run([z_t,gx,cost,cost_all, invert_train_op], feed_dict=feed_dict)
+
+                #session.run(assign_op)
                 order = np.argsort(_cost_all)
                 _gx_sort = _gx[order]
     
                 lib.plot_opt.plot('cost', _cost)
                 lib.plot_opt.plot('time', time.time() - start_time)    
                
-                #print(_z_t[0])
+
                 print("iter: %d ; cost_all: %f"%(iteration,_cost))
                 # Calculate dev loss and generate samples every 100 iters
                 if (iteration % 10 == 9) or (iteration==0):
                     lib.plot_opt.flush()
+                    print(_m_edge)
+                    print(_cost_all[order])
+                    #print(_edge_all)
+                    #print(_gx_edge)
                     #_ggx = session.run(Generator(128))
                     #_ggx = ((_ggx+1.)*(255.99/2)).astype('int32')
                     _gx = ((_gx+1.)*(255.99/2)).astype('int32')
