@@ -21,7 +21,7 @@ class HOGNet():
     
     def comp_mask(self,mask):
         BS = self.BS
-
+        mask = tf.transpose(mask,[0,2,3,1])
         bf = np.ones(( 2 * BS, 2 * BS, 1,1))
         bf_tf = tf.cast(tf.convert_to_tensor(bf),tf.float32)
         m_b = tf.nn.conv2d(mask, bf_tf, strides=[1,BS,BS,1], padding='SAME')
@@ -54,6 +54,7 @@ class HOGNet():
         l1 = 1/(1-a)
         l2 = a/(1-a)
         eps = 1e-3
+
         if nc == 3:
             print(x.get_shape())
             x_gray = tf.expand_dims(tf.reduce_mean(x, axis=3),3)
