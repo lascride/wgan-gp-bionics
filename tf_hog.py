@@ -56,7 +56,7 @@ class HOGNet():
         eps = 1e-3
 
         if nc == 3:
-            print(x.get_shape())
+            #print(x.get_shape())
             x_gray = tf.expand_dims(tf.reduce_mean(x, axis=3),3)
         else:
             x_gray = x        
@@ -65,7 +65,7 @@ class HOGNet():
         g = tf.nn.conv2d(x_gray, G_tf, strides=[1,1,1,1], padding='SAME')
         
         if use_bin:
-            print("hha")
+
             gx = tf.expand_dims(g[:, :, :, 0],3)
             gy = tf.expand_dims(g[:, :, :, 1],3)    
             gg = tf.sqrt(gx * gx + gy * gy + eps)

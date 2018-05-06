@@ -406,6 +406,7 @@ if __name__ == '__main__':
 
             gx = Generator(args.BATCH_SIZE, noise=z_t)
             gx3 = tf.reshape((gx+1.)*(255.99/2),[args.BATCH_SIZE, 3, 64, 64]) 
+            gx3_alter = gx3
             gx3 = transform(gx3, 3,trans='no')
             mm_c = tf.tile(m_c, [1, int(gx3.shape[1]), 1, 1])#tile gray to rgb
             
@@ -414,7 +415,7 @@ if __name__ == '__main__':
             
             
             if args.edge == 'Yes':
-                tf_hog = tf_hog.HOGNet(use_bin=True, NO=8, BS=4, nc=3)
+                tf_hog = tf_hog.HOGNet(use_bin=True, NO=8, BS=8, nc=3)
                 gx_edge = tf_hog.get_hog(gx3)
                 x_edge = tf_hog.get_hog(x_e)
                 m_edge = tf_hog.comp_mask(m_e)
