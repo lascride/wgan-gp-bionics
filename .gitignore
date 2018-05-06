@@ -4,6 +4,6 @@ push
 *.pyc
 *.pkl
 *.jpg
-*.png
+#*.png
 
 /models
