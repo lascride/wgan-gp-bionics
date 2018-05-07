@@ -455,7 +455,7 @@ if __name__ == '__main__':
 
   
         
-            cost_all = color_all + 0.4 * edge_all + 0.01*real_all +5.0 * init_all
+            cost_all = color_all + edge_all + 0.05*real_all +5.0 * init_all
         
             cost = tf.reduce_sum(cost_all)
 
