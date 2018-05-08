@@ -97,25 +97,25 @@ if __name__ == '__main__':
                 b1 = tf.get_variable('b1', shape=[4*4*8*dim], dtype=tf.float32,
                                      initializer=tf.constant_initializer(0.0))
                 flat_conv1 = tf.add(tf.matmul(noise, w1), b1, name='flat_conv1')
-                # 4*4*256
+                # 4*4*1024
                 conv1 = tf.reshape(flat_conv1, shape=[-1, 4, 4, 8*dim], name='conv1')
                 act1 = tf.nn.relu(conv1, name='act1')
-                # 8*8*64
+                # 8*8*512
                 conv2 = tf.layers.conv2d_transpose(act1, 4*dim, kernel_size=[5, 5], strides=[2, 2], padding="SAME",
                                                    kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
                                                    name='conv2')
                 act2 = tf.nn.relu(conv2, name='act2')
-                # 16*16*128
+                # 16*16*256
                 conv3 = tf.layers.conv2d_transpose(act2, 2*dim, kernel_size=[5, 5], strides=[2, 2], padding="SAME",
                                                    kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
                                                    name='conv3')
                 act3 = tf.nn.relu(conv3, name='act3')
-                # 32*32*256
+                # 32*32*128
                 conv4 = tf.layers.conv2d_transpose(act3, dim, kernel_size=[5, 5], strides=[2, 2], padding="SAME",
                                                    kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
                                                    name='conv4')
                 act4 = tf.nn.relu(conv4, name='act4')
-                # 32*32*1
+                # 64*64*3
                 conv5 = tf.layers.conv2d_transpose(act4, 3, kernel_size=[5, 5], strides=[2, 2], padding="SAME",
                                                    kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
                                                    name='conv5')
@@ -124,37 +124,47 @@ if __name__ == '__main__':
                 return tf.reshape(act5, [-1, args.OUTPUT_DIM])
                 
         if dim==128:
-            output = lib.ops.linear.Linear('Generator.Input', 128, 4*4*16*dim, noise)
-                    
-            output = tf.reshape(output, [-1, 16*dim, 4, 4])
-        
-            output = nonlinearity(output)
+            with tf.variable_scope('gen') as scope:
+                if reuse:
+                    scope.reuse_variables()
+                w1 = tf.get_variable('w1', shape=[128, 4*4*16*dim], dtype=tf.float32,
+                                     initializer=tf.truncated_normal_initializer(stddev=0.02))
+                b1 = tf.get_variable('b1', shape=[4*4*16*dim], dtype=tf.float32,
+                                     initializer=tf.constant_initializer(0.0))
+                flat_conv1 = tf.add(tf.matmul(noise, w1), b1, name='flat_conv1')
+                # 4*4*2048
+                conv1 = tf.reshape(flat_conv1, shape=[-1, 4, 4, 16*dim], name='conv1')
+                act1 = tf.nn.relu(conv1, name='act1')
+                # 8*8*1024
+                conv2 = tf.layers.conv2d_transpose(act1, 8*dim, kernel_size=[5, 5], strides=[2, 2], padding="SAME",
+                                                   kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
+                                                   name='conv2')
+                act2 = tf.nn.relu(conv2, name='act2')
+                # 16*16*512
+                conv3 = tf.layers.conv2d_transpose(act2, 4*dim, kernel_size=[5, 5], strides=[2, 2], padding="SAME",
+                                                   kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
+                                                   name='conv3')
+                act3 = tf.nn.relu(conv3, name='act3')
+                # 32*32*256
+                conv4 = tf.layers.conv2d_transpose(act3, 2*dim, kernel_size=[5, 5], strides=[2, 2], padding="SAME",
+                                                   kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
+                                                   name='conv4')
+                act4 = tf.nn.relu(conv4, name='act4')
+                # 64*64*128
+                conv5 = tf.layers.conv2d_transpose(act4, dim, kernel_size=[5, 5], strides=[2, 2], padding="SAME",
+                                                   kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
+                                                   name='conv5')
+                act5 = tf.nn.tanh(conv5, name='act5')
+                #128*128*3
+                conv6 = tf.layers.conv2d_transpose(act5, 3, kernel_size=[5, 5], strides=[2, 2], padding="SAME",
+                                                   kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
+                                                   name='conv6')
+                act6 = tf.nn.relu(conv6, name='act6')                
             
-            output = lib.ops.deconv2d.Deconv2D('Generator.1', 16*dim, 8*dim, 5, output)
-        
-            output = nonlinearity(output)
-        
-            output = lib.ops.deconv2d.Deconv2D('Generator.2', 8*dim, 4*dim, 5, output)
-        
-            output = nonlinearity(output)
-        
-            output = lib.ops.deconv2d.Deconv2D('Generator.3', 4*dim, 2*dim, 5, output)
-        
-            output = nonlinearity(output)
-        
-            output = lib.ops.deconv2d.Deconv2D('Generator.4', 2*dim, dim, 5, output)
-        
-            output = nonlinearity(output)
-        
-            output = lib.ops.deconv2d.Deconv2D('Generator.5', dim, 3, 5, output)
-            output = tf.tanh(output)
-    
-        lib.ops.conv2d.unset_weights_stdev()
-        lib.ops.deconv2d.unset_weights_stdev()
-        lib.ops.linear.unset_weights_stdev()
-    
-        return tf.reshape(output, [-1, args.OUTPUT_DIM])
-    
+                return tf.reshape(act6, [-1, args.OUTPUT_DIM])            
+            
+            
+
     
     def Discriminator(inputs, dim=args.DIM, nonlinearity=LeakyReLU,reuse=False):
         output = tf.reshape(inputs, [-1, args.DIM, args.DIM, 3])
@@ -166,7 +176,7 @@ if __name__ == '__main__':
                 if reuse:
                     scope.reuse_variables()
                 # 16*16*32
-                inputs = tf.reshape(inputs, [-1, 3, args.DIM, args.DIM])    
+                inputs = tf.reshape(inputs, [-1, args.DIM, args.DIM, 3])    
                 conv1 = tf.layers.conv2d(inputs, dim, kernel_size=[5, 5], strides=[2, 2], padding="SAME",
                                          kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
                                          name='conv1')
@@ -185,7 +195,7 @@ if __name__ == '__main__':
                 conv4 = tf.layers.conv2d(act3, 8*dim, kernel_size=[5, 5], strides=[2, 2], padding="SAME",
                                          kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
                                          name='conv4')
-                act4 = LeakyReLU(conv4, n='act3')                
+                act4 = LeakyReLU(conv4, n='act4')                
         
 
                 fc1 = tf.reshape(act4, shape=[-1, 4*4*8*dim], name='fc1')
@@ -199,98 +209,120 @@ if __name__ == '__main__':
                 return tf.reshape(output, [-1])           
 
         if dim==128:
-            output = lib.ops.conv2d.Conv2D('Discriminator.1', 3, dim, 5, output, stride=2)
-            output = nonlinearity(output)
+            with tf.variable_scope('dis') as scope:
+                if reuse:
+                    scope.reuse_variables()
+                # 128*128*3
+                inputs = tf.reshape(inputs, [-1,args.DIM, args.DIM,3])    
+                # 64*64*128
+                conv1 = tf.layers.conv2d(inputs, dim, kernel_size=[5, 5], strides=[2, 2], padding="SAME",
+                                         kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
+                                         name='conv1')
+                act1 = LeakyReLU(conv1, n='act1')
+                # 32*32*256
+                conv2 = tf.layers.conv2d(act1, 2*dim, kernel_size=[5, 5], strides=[2, 2], padding="SAME",
+                                         kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
+                                         name='conv2')
+                act2 = LeakyReLU(conv2, n='act2')
+                # 16*16*512
+                conv3 = tf.layers.conv2d(act2, 4*dim, kernel_size=[5, 5], strides=[2, 2], padding="SAME",
+                                         kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
+                                         name='conv3')
+                act3 = LeakyReLU(conv3, n='act3')
+                # 8*8*1024
+                conv4 = tf.layers.conv2d(act3, 8*dim, kernel_size=[5, 5], strides=[2, 2], padding="SAME",
+                                         kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
+                                         name='conv4')
+                act4 = LeakyReLU(conv4, n='act4') 
+                # 4*4*2048
+                conv5 = tf.layers.conv2d(act4, 16*dim, kernel_size=[5, 5], strides=[2, 2], padding="SAME",
+                                         kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
+                                         name='conv5')
+                act5 = LeakyReLU(conv5, n='act5')                
         
-            output = lib.ops.conv2d.Conv2D('Discriminator.2', dim, 2*dim, 5, output, stride=2)
-        
-            output = nonlinearity(output)
-        
-            output = lib.ops.conv2d.Conv2D('Discriminator.3', 2*dim, 4*dim, 5, output, stride=2)
-        
-            output = nonlinearity(output)
-        
-            output = lib.ops.conv2d.Conv2D('Discriminator.4', 4*dim, 8*dim, 5, output, stride=2)
-        
-            output = nonlinearity(output)
 
-            output = lib.ops.conv2d.Conv2D('Discriminator.5', 8*dim, 16*dim, 5, output, stride=2)
+                fc1 = tf.reshape(act5, shape=[-1, 4*4*16*dim], name='fc1')
+                w1 = tf.get_variable('w1', shape=[fc1.shape[1], 1], dtype=tf.float32,
+                                     initializer=tf.truncated_normal_initializer(stddev=0.02))
+                b1 = tf.get_variable('b1', shape=[1], dtype=tf.float32,
+                                     initializer=tf.constant_initializer(0.0))
         
-            output = nonlinearity(output)
+                # wgan just get rid of the sigmoid
+                output = tf.add(tf.matmul(fc1, w1), b1, name='output')
+                return tf.reshape(output, [-1])                  
             
-            output = tf.reshape(output, [-1, 4*4*16*dim])
-            output = lib.ops.linear.Linear('Discriminator.Output', 4*4*16*dim, 1, output)
-            
-        lib.ops.conv2d.unset_weights_stdev()
-        lib.ops.deconv2d.unset_weights_stdev()
-        lib.ops.linear.unset_weights_stdev()
+    real_data_conv = tf.placeholder(tf.int32, shape=[args.BATCH_SIZE, 3, args.DIM, args.DIM])
+    real_data = tf.reshape(2*((tf.cast(real_data_conv, tf.float32)/255.)-.5), [args.BATCH_SIZE, args.OUTPUT_DIM])
     
-        return tf.reshape(output, [-1])    
+    fake_data = Generator(args.BATCH_SIZE)
     
+    disc_real = Discriminator(real_data)
+    disc_fake = Discriminator(fake_data,reuse=True)
+    
+    gen_params = lib.params_with_name('Generator')
+    disc_params = lib.params_with_name('Discriminator')
+    
+    if args.MODE == 'wgan':
+        gen_cost = -tf.reduce_mean(disc_fake)
+        disc_cost = tf.reduce_mean(disc_fake) - tf.reduce_mean(disc_real)
+    
+        gen_train_op = tf.train.RMSPropOptimizer(
+            learning_rate=5e-5
+        ).minimize(gen_cost, var_list=gen_params)
+        disc_train_op = tf.train.RMSPropOptimizer(
+            learning_rate=5e-5
+        ).minimize(disc_cost, var_list=disc_params)
+    
+        clip_ops = []
+        for var in lib.params_with_name('Discriminator'):
+            clip_bounds = [-.01, .01]
+            clip_ops.append(
+                tf.assign(
+                    var, 
+                    tf.clip_by_value(var, clip_bounds[0], clip_bounds[1])
+                )
+            )
+        clip_disc_weights = tf.group(*clip_ops)
+    
+    elif args.MODE == 'wgan-gp':
+        gen_cost = -tf.reduce_mean(disc_fake)
+        disc_cost = tf.reduce_mean(disc_fake) - tf.reduce_mean(disc_real)
+    
+        alpha = tf.random_uniform(
+            shape=[args.BATCH_SIZE,1], 
+            minval=0.,
+            maxval=1.
+        )
+        differences = fake_data - real_data
+        interpolates = real_data + (alpha*differences)
+        gradients = tf.gradients(Discriminator(interpolates,reuse=True), [interpolates])[0]
+        slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients), reduction_indices=[1]))
+        gradient_penalty = tf.reduce_mean((slopes-1.)**2)
+        disc_cost += args.LAMBDA*gradient_penalty
+    
+        t_vars = tf.trainable_variables()
+        d_vars = [var for var in t_vars if 'dis' in var.name]
+        g_vars = [var for var in t_vars if 'gen' in var.name]
+        disc_train_op = tf.train.AdamOptimizer(learning_rate=0.0001, beta1=0.5, beta2=0.9).minimize(disc_cost, var_list=d_vars)
+        gen_train_op = tf.train.AdamOptimizer(learning_rate=0.0001, beta1=0.5, beta2=0.9).minimize(gen_cost, var_list=g_vars)
 
     
+        clip_disc_weights = None    
+        
+    train_gen = load_image.load(args.BATCH_SIZE, data_dir=args.DATA_DIR, dim=args.DIM) 
+    def inf_train_gen():
+        while True:
+            for (images,) in train_gen():
+                yield images
+                
+
+    gen = inf_train_gen()
     # Train loop
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as session:
         
         
 
-        real_data_conv = tf.placeholder(tf.int32, shape=[args.BATCH_SIZE, 3, args.DIM, args.DIM])
-        real_data = tf.reshape(2*((tf.cast(real_data_conv, tf.float32)/255.)-.5), [args.BATCH_SIZE, args.OUTPUT_DIM])
-        
-        fake_data = Generator(args.BATCH_SIZE)
-        
-        disc_real = Discriminator(real_data)
-        disc_fake = Discriminator(fake_data,reuse=True)
-        
-        gen_params = lib.params_with_name('Generator')
-        disc_params = lib.params_with_name('Discriminator')
-        
-        if args.MODE == 'wgan':
-            gen_cost = -tf.reduce_mean(disc_fake)
-            disc_cost = tf.reduce_mean(disc_fake) - tf.reduce_mean(disc_real)
-        
-            gen_train_op = tf.train.RMSPropOptimizer(
-                learning_rate=5e-5
-            ).minimize(gen_cost, var_list=gen_params)
-            disc_train_op = tf.train.RMSPropOptimizer(
-                learning_rate=5e-5
-            ).minimize(disc_cost, var_list=disc_params)
-        
-            clip_ops = []
-            for var in lib.params_with_name('Discriminator'):
-                clip_bounds = [-.01, .01]
-                clip_ops.append(
-                    tf.assign(
-                        var, 
-                        tf.clip_by_value(var, clip_bounds[0], clip_bounds[1])
-                    )
-                )
-            clip_disc_weights = tf.group(*clip_ops)
-        
-        elif args.MODE == 'wgan-gp':
-            gen_cost = -tf.reduce_mean(disc_fake)
-            disc_cost = tf.reduce_mean(disc_fake) - tf.reduce_mean(disc_real)
-        
-            alpha = tf.random_uniform(
-                shape=[args.BATCH_SIZE,1], 
-                minval=0.,
-                maxval=1.
-            )
-            differences = fake_data - real_data
-            interpolates = real_data + (alpha*differences)
-            gradients = tf.gradients(Discriminator(interpolates,reuse=True), [interpolates])[0]
-            slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients), reduction_indices=[1]))
-            gradient_penalty = tf.reduce_mean((slopes-1.)**2)
-            disc_cost += args.LAMBDA*gradient_penalty
-        
-            t_vars = tf.trainable_variables()
-            d_vars = [var for var in t_vars if 'dis' in var.name]
-            g_vars = [var for var in t_vars if 'gen' in var.name]
-            disc_train_op = tf.train.AdamOptimizer(learning_rate=0.0001, beta1=0.5, beta2=0.9).minimize(disc_cost, var_list=d_vars)
-            gen_train_op = tf.train.AdamOptimizer(learning_rate=0.0001, beta1=0.5, beta2=0.9).minimize(gen_cost, var_list=g_vars)
 
-        
-            clip_disc_weights = None
         
 
         
@@ -307,17 +339,10 @@ if __name__ == '__main__':
             lib.save_images.save_images(samples.reshape((args.BATCH_SIZE, 3, args.DIM, args.DIM)), args.model_dir +'/samples_{}.png'.format(iteration))
         
         # Dataset iterator
-        train_gen = load_image.load(args.BATCH_SIZE, data_dir=args.DATA_DIR, dim=args.DIM)
-        def inf_train_gen():
-            while True:
-                for (images,) in train_gen():
-                    yield images
+
+
         
-        # Save a batch of ground-truth samples
-        _x = inf_train_gen().__next__()
-        _x_r = session.run(real_data, feed_dict={real_data_conv: _x[:args.BATCH_SIZE]})
-        _x_r = ((_x_r+1.)*(255.99/2)).astype('int32')
-        lib.save_images.save_images(_x_r.reshape((args.BATCH_SIZE, 3, args.DIM, args.DIM)), 'samples_groundtruth.png')
+
         
         
         #train_gen, dev_gen, test_gen = lib.mnist.load(args.BATCH_SIZE, args.BATCH_SIZE)
@@ -332,7 +357,7 @@ if __name__ == '__main__':
         
         
         
-        gen = inf_train_gen()
+
 
  
         for iteration in range(args.ITERS):
