@@ -163,7 +163,6 @@ if __name__ == '__main__':
             
                 return tf.reshape(act6, [-1, args.OUTPUT_DIM])            
             
-            
 
     
     def Discriminator(inputs, dim=args.DIM, nonlinearity=LeakyReLU,reuse=False):
@@ -309,11 +308,11 @@ if __name__ == '__main__':
     
         clip_disc_weights = None    
         
-    train_gen = load_image.load(args.BATCH_SIZE, data_dir=args.DATA_DIR, dim=args.DIM) 
+    train_gen = load_image.load(args.BATCH_SIZE, data_dir=args.DATA_DIR, dim=args.DIM,num=args.img_num,count=args.restore_index)
     def inf_train_gen():
         while True:
             for (images,) in train_gen():
-                yield images
+                yield images  
                 
 
     gen = inf_train_gen()
@@ -348,15 +347,25 @@ if __name__ == '__main__':
         #train_gen, dev_gen, test_gen = lib.mnist.load(args.BATCH_SIZE, args.BATCH_SIZE)
 
         
-        saver = tf.train.Saver()
+        saver = tf.train.Saver(max_to_keep=40)
         session.run(tf.initialize_all_variables())
-        index = 0
+        index = 1
         if args.restore_index:
             saver.restore(session,args.model_dir+"/wgangp_"+str(args.restore_index)+".cptk")
-            index = index + args.restore_index + 1
+            index = args.restore_index + 1
+
+
+        from functools import reduce
+        from operator import mul
         
-        
-        
+        def get_num_params():
+            num_params = 0
+            for variable in tf.trainable_variables():
+                shape = variable.get_shape()
+                num_params += reduce(mul, [dim.value for dim in shape], 1)
+            return num_params  
+        print('haha')
+        print(get_num_params())
 
 
  

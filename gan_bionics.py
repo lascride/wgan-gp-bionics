@@ -105,15 +105,15 @@ if __name__ == '__main__':
             output = lib.ops.deconv2d.Deconv2D('Generator.5', dim, 3, 5, output)
             output = tf.tanh(output)
         if dim==128:
-            output = lib.ops.linear.Linear('Generator.Input', 128, 4*4*16*dim, noise)
+            output = lib.ops.linear.Linear('Generator.Input', 128, 8*8*8*dim, noise)
                     
-            output = tf.reshape(output, [-1, 16*dim, 4, 4])
+            output = tf.reshape(output, [-1, 8*dim, 8, 8])
         
             output = nonlinearity(output)
             
-            output = lib.ops.deconv2d.Deconv2D('Generator.1', 16*dim, 8*dim, 5, output)
+           # output = lib.ops.deconv2d.Deconv2D('Generator.1', 16*dim, 8*dim, 5, output)
         
-            output = nonlinearity(output)
+           # output = nonlinearity(output)
         
             output = lib.ops.deconv2d.Deconv2D('Generator.2', 8*dim, 4*dim, 5, output)
         
@@ -179,12 +179,12 @@ if __name__ == '__main__':
         
             output = nonlinearity(output)
 
-            output = lib.ops.conv2d.Conv2D('Discriminator.5', 8*dim, 16*dim, 5, output, stride=2)
+            #output = lib.ops.conv2d.Conv2D('Discriminator.5', 8*dim, 16*dim, 5, output, stride=2)
         
             output = nonlinearity(output)
             
-            output = tf.reshape(output, [-1, 4*4*16*dim])
-            output = lib.ops.linear.Linear('Discriminator.Output', 4*4*16*dim, 1, output)
+            output = tf.reshape(output, [-1, 8*8*8*dim])
+            output = lib.ops.linear.Linear('Discriminator.Output', 8*8*8*dim, 1, output)
             
         lib.ops.conv2d.unset_weights_stdev()
         lib.ops.deconv2d.unset_weights_stdev()
@@ -242,31 +242,32 @@ if __name__ == '__main__':
         disc_cost += args.LAMBDA*gradient_penalty
     
         gen_train_op = tf.train.AdamOptimizer(
-            learning_rate=1e-4, 
+            learning_rate=1e-3, 
             beta1=0.5,
-            beta2=0.9
+
         ).minimize(gen_cost, var_list=gen_params)
+        
         disc_train_op = tf.train.AdamOptimizer(
-            learning_rate=1e-4, 
+            learning_rate=1e-3, 
             beta1=0.5, 
-            beta2=0.9
+
         ).minimize(disc_cost, var_list=disc_params)
     
         clip_disc_weights = None
     
     elif args.MODE == 'dcgan':
         gen_cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
-            disc_fake, 
-            tf.ones_like(disc_fake)
+            logits=disc_fake, 
+            labels=tf.ones_like(disc_fake)
         ))
     
         disc_cost =  tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
-            disc_fake, 
-            tf.zeros_like(disc_fake)
+            logits=disc_fake, 
+            labels=tf.zeros_like(disc_fake)
         ))
         disc_cost += tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
-            disc_real, 
-            tf.ones_like(disc_real)
+            logits=disc_real, 
+            labels=tf.ones_like(disc_real)
         ))
         disc_cost /= 2.
     
@@ -281,13 +282,14 @@ if __name__ == '__main__':
     
         clip_disc_weights = None
 
-    train_gen = load_image.load(args.BATCH_SIZE, data_dir=args.DATA_DIR, dim=args.DIM,num=args.img_num)
+    train_gen = load_image.load(args.BATCH_SIZE, data_dir=args.DATA_DIR, dim=args.DIM,num=args.img_num,count=args.restore_index)
     def inf_train_gen():
         while True:
             for (images,) in train_gen():
-                yield images   
+                yield images  
                 
-    gen = inf_train_gen()                
+
+    gen = inf_train_gen()              
     # Train loop
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as session:
         
@@ -311,15 +313,26 @@ if __name__ == '__main__':
         #train_gen, dev_gen, test_gen = lib.mnist.load(args.BATCH_SIZE, args.BATCH_SIZE)
 
         
-        saver = tf.train.Saver()
+        saver = tf.train.Saver(max_to_keep=20)
         session.run(tf.initialize_all_variables())
-        index = 0
+        index = 1
         if args.restore_index:
             saver.restore(session,args.model_dir+"/wgangp_"+str(args.restore_index)+".cptk")
-            index = index + args.restore_index + 1
+            index = args.restore_index + 1
+            
         
         
+        from functools import reduce
+        from operator import mul
         
+        def get_num_params():
+            num_params = 0
+            for variable in tf.trainable_variables():
+                shape = variable.get_shape()
+                num_params += reduce(mul, [dim.value for dim in shape], 1)
+            return num_params  
+        print('haha')
+        print(get_num_params())        
 
 
  
@@ -348,7 +361,7 @@ if __name__ == '__main__':
             
             print("iter: %d   disc_cost: %f"%(index,_disc_cost))
             # Calculate dev loss and generate samples every 100 iters
-            if index % 100 == 99:
+            if index % 10 == 9:
                 generate_image(index)
                 saver.save(session, args.model_dir + '/wgangp_' + str(index) + '.cptk')
                 #saver.save(session, 'wgangp_bionics' + '.cptk')

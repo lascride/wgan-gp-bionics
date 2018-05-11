@@ -308,6 +308,7 @@ if __name__ == '__main__':
         if args.restore_index:
             saver.restore(session,args.model_dir+"/wgangp_"+str(args.restore_index)+".cptk")
             index = index + args.restore_index + 1
+            lib.plot.set_iter(index)
         
         
         

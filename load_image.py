@@ -2,8 +2,11 @@ import numpy as np
 import scipy.misc
 import time
 
-def make_generator(path, n_files, batch_size, dim=64):
-    epoch_count = [1]
+def make_generator(path, n_files, batch_size, dim=64, count=None):
+    if count==None:
+        epoch_count = [1]
+    else: 
+        epoch_count = [count]
     def get_epoch():
         images = np.zeros((batch_size, 3, dim, dim), dtype='int32')
         files = list(range(n_files))
@@ -17,8 +20,8 @@ def make_generator(path, n_files, batch_size, dim=64):
                 yield (images,)
     return get_epoch
 
-def load(batch_size, data_dir='E:/project/project/image/input_3_64_10000_rot/10',dim=64,num=4096):
-    return make_generator(data_dir, 4*num, batch_size,dim)
+def load(batch_size, data_dir='E:/project/project/image/input_3_64_10000_rot/10',dim=64,num=4096,count=None):
+    return make_generator(data_dir, 4*num, batch_size,dim,count)
 
     
 

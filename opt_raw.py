@@ -64,9 +64,9 @@ def parse_args():
 
     parser.add_argument('--edge', dest='edge', help='whether to consider egde', default='No', type=str)
     parser.add_argument('--z0', dest='z0', help='whether to consider z0', default='No', type=str)
-    parser.add_argument('--input_color_name', dest='input_color_name', help='input color image name', default='input_color')
-    parser.add_argument('--input_color_mask_name', dest='input_color_mask_name', help='input color mask name', default='input_color_mask')
-    parser.add_argument('--input_edge_name', dest='input_edge_name', help='input edge image name', default='input_edge')
+    parser.add_argument('--input_color_name', dest='input_color_name', help='input color image name', default='blank')
+    parser.add_argument('--input_color_mask_name', dest='input_color_mask_name', help='input color mask name', default='blank')
+    parser.add_argument('--input_edge_name', dest='input_edge_name', help='input edge image name', default='blank')
 
     
     args = parser.parse_args()
@@ -455,7 +455,7 @@ if __name__ == '__main__':
 
   
         
-            cost_all = color_all + edge_all + 0.05*real_all +5.0 * init_all
+            cost_all = color_all + edge_all + 0*real_all +5.0 * init_all
         
             cost = tf.reduce_sum(cost_all)
 

@@ -45,8 +45,6 @@ def parse_args():
     parser.add_argument('--LAMBDA', dest='LAMBDA', help='Gradient penalty lambda hyperparameter',type=int, default=10)
     parser.add_argument('--ITERS', dest='ITERS', help='How many generator iterations to train for',type=int, default=100)
     parser.add_argument('--OUTPUT_DIM', dest='OUTPUT_DIM', help='Number of pixels in MNIST (28*28)',type=int, default=64*64*3)
-    parser.add_argument('--output_lenth', dest='output_lenth', help='lenth of the output images',type=int, default=64)
-    parser.add_argument('--img_num', dest='img_num', help='the number of the output images', type=int, default=4096)
     parser.add_argument('--model_dir', dest='model_dir', type=str, default='models',
                         help='directory to save models') 
     parser.add_argument('--opt_dir', dest='opt_dir', type=str, default='opt',
@@ -57,8 +55,8 @@ def parse_args():
 
 
     parser.add_argument('--z0', dest='z0', help='whether to consider z0', default='No', type=str)
-    parser.add_argument('--input_color_name', dest='input_color_name', help='input color image name', default='input_color')
-    parser.add_argument('--input_edge_name', dest='input_edge_name', help='input edge image name', default='input_edge')
+    parser.add_argument('--input_color_name', dest='input_color_name', help='input color image name', default='blank')
+    parser.add_argument('--input_edge_name', dest='input_edge_name', help='input edge image name', default='blank')
 
     
     args = parser.parse_args()
