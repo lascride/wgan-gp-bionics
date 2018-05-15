@@ -38,7 +38,7 @@ class HOGNet():
         
         x = (x_o + 1)/2
         x = tf.transpose(x,[0,2,3,1])
-        Gx = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]) / 4.0
+        Gx = np.array([[0, 0, 0], [-2, 0, 2], [0, 0, 0]]) / 2.0
         Gy = Gx.T
         
         f1_w = []

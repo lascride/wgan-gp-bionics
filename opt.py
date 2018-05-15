@@ -256,7 +256,7 @@ if __name__ == '__main__':
         
         
         #edge cost
-        tf_hog = tf_hog.HOGNet(use_bin=True, NO=8, BS=8, nc=3)
+        tf_hog = tf_hog.HOGNet(use_bin=True, NO=16, BS=3, nc=3)
         gx_edge = tf_hog.get_hog(gx3)
         x_edge = tf_hog.get_hog(x_e)
         m_edge = tf_hog.comp_mask(m_e)
@@ -272,7 +272,7 @@ if __name__ == '__main__':
 
   
     
-        cost_all = color_all + 0.4 * edge_all + 0.01*real_all
+        cost_all = color_all + 0.8 * edge_all + 0.01*real_all
         cost = tf.reduce_sum(cost_all)
 
     
@@ -320,7 +320,14 @@ if __name__ == '__main__':
 
 
             _x_c,_gx3, _m_c_o, _color_all,_real_all, _m_edge,_edge_all,_z_t,_gx, _cost, _cost_all, _ = session.run([x_c,gx3, m_c_o,color_all,real_all,m_edge,edge_all,z_t,gx,cost,cost_all, invert_train_op], feed_dict=feed_dict)
-
+            print('colorall')                    
+            print(_color_all)                    
+            print('edgeall')                    
+            print(_edge_all)
+            print('costall')
+            print(_cost_all)
+            print('realall')
+            print(_real_all)            
             #get orders
             order_all = np.argsort(_cost_all)
             order_color = np.argsort(_color_all)

@@ -166,7 +166,6 @@ if __name__ == '__main__':
 
     
     def Discriminator(inputs, dim=args.DIM, nonlinearity=LeakyReLU,reuse=False):
-        output = tf.reshape(inputs, [-1, args.DIM, args.DIM, 3])
     
 
         if dim==64:
