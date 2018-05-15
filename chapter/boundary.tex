@@ -1,0 +1,103 @@
+﻿\chapter{边界层效应与临界指标的寻找}
+
+在前两章中，我们证明了，$\mathbb{T}_{L}\times [a,b]$上的线性化Euler方程，当初值的边值非零/取零时，分别有$H^{3/2-},H^{5/2-}$稳定性，并在$H^s(s>\frac{3}{2}, \frac{5}{2})$时发生爆破。但之前的讨论并没有给出当$y$靠近边界时，解的奇异性的具体刻画，也没有说明为什么能够直接“猜出”临界指标是$\frac{3}{2},\frac{5}{2}$. 那么本章就从估计边界效应项$H^{(1)}$在$y\rightarrow 0$时的贡献来说明这两个问题。下面我们不妨假设$w_0|_{y=0,1}\neq 0$(等于0时的讨论是同理的)，来考虑$\partial_y W$的奇异性.
+
+我们考虑的方程是:
+\begin{equation}
+\begin{cases}
+\begin{aligned}
+\partial_t\partial_y W&=\frac{if}{k}(\Phi^{(1)}+H^{(1)})+\frac{if'\Phi}{k},\\
+(-1+(g(\frac{\partial_y}{k}-it))^2)\Phi^{(1)}&=\partial_y W+[(g(\frac{\partial_y}{k}-it))^2,\partial_y]\Phi, \\
+\Phi^{(1)}|_{y=0,1}&=0. \\
+H^{(1)}&=\partial_y\Phi-\Phi^{(1)}, \\
+(-1+(g(\frac{\partial_y}{k}-it))^2)H^{(1)}&=0, \\
+H^{(1)}|_{y=0,1}&=\partial_y\Phi|_{y=0,1}, \\
+(k,y,t)&\in L(\mathbb{Z}-\{0\})\times [0,1] \times\mathbb{R}.
+\end{aligned}
+\end{cases}
+\end{equation}
+
+\section{边界效应带来$\log(t)$的奇异性}
+边界项$H^{(1)}$对$\partial_y W$的贡献，自然是用$$\frac{if(y)}{k}\int_0^T H^{(1)}(t,y)dt$$在$T\rightarrow \infty$时的行为来刻画. 
+
+在之前的章节，我们已经证明$$H^{(1)}(t,y)=H^{(1)}(t,0)e^{ikty}u_1(0,y)+H^{(1)}(t,1)e^{ikt(y-1)}u_2(y).$$ 那么积分就有
+\begin{equation}
+\forall y\in [0,1], \int_1^{T}H^{(1)}(t,y)=\int_1^T H^{(1)}(t,0)e^{ikty}u_1(0,y)+H^{(1)} (t,1)e^{ikt(y-1)}u_2(y)dt.
+\end{equation}
+
+在第四章我们证明了$$H^{(1)}(t,0)=\frac{1}{t}\frac{w_0|_{y=0}}{g^2(0)}+O(t^{-s-1}).$$ 因此当$y=0$时，直接积分就有
+$$\int_1^T H^{(1)}(t,0)e^{ikty}dt|_{y=0}\gtrsim\log T.$$
+
+下面的引理给出了$y>0$时 (6.2)式的行为刻画.
+
+\begin{lem}
+\songti\rm 设$k\in\mathbb{Z}_+$. 则:
+
+(1)当$y\geq \frac{1}{2k}$时，积分$$\int_1^T e^{ikty}{t}dt$$关于$T,k,y$一致有界；
+
+(2)当$0<y<\frac{1}{2k}$时，$$\left|\int_1^T\frac{e^{ikty}}{t}d\right|t\gtrsim\min\{\log T,-\log(ky)\}+O(1);$$
+
+(3)当$0<y<\frac{1}{2kT}$时，$$Re\int_1^T\frac{e^{ikty}}{t} dt\gtrsim \log T+O(1);$$
+
+(4)$T\rightarrow\infty,0<y<\frac{1}{k}$时，$$\left|\int_1^\infty\frac{e^{ikty}}{t}dt\right|\gtrsim-\log(ky)+O(1).$$
+\end{lem}
+
+\textbf{证明：}只用证明(1),(2),后面的都是推论。
+
+(1)的证明非常简单，作变量替换$\tau=kyt$即有$$\int_1^T e^{ikty}{t}dt=\int_{ky}^{kyT}\frac{e^{i\tau}}{\tau}d\tau.$$
+
+注意到对固定的$\frac{1}{2}\leq x_1\leq x_2$, 成立$$\int_{x_1}^{x_2}\frac{e^{i\tau}}{\tau}d\tau\lesssim 2.$$
+
+于是令$x_1=ky$即可.
+
+(2)的证明也很简单，在上式中取$x_1=1,x_2=kyT$, 可得$$\int_1^{kyT}\frac{e^{i\tau}}{\tau}d\tau\lesssim 1.$$
+
+再估计$$\int_{ky}^{\min{1,kyT}}\frac{e^{i\tau}}{\tau}d\tau.$$这时注意到$\tau\in(0,1)\Rightarrow 0\leq\cos 1<\cos\tau=Re(e^{i\tau})\leq 1$
+
+所以$$\int_{ky}^{\min\{1,kyT\}}\frac{e^{i\tau}}{\tau}d\tau\dot{=}\int_{ky}^{\min\{1,kyT\}}\frac{d\tau}{\tau}=\min\{\log T,-\log(ky)\}.$$
+
+\begin{flushright}
+$\square$
+\end{flushright}
+
+\section{临界指标的寻找}
+
+注意到$1\leq p<\infty$时$\log x\in L^p[0,1]$, 所以在$L^p(p\neq\infty)$中不会出现爆破。然而我们的稳定性是在Sobolev空间中考虑的，所以我们希望刻画$\partial_y^s\partial_yW$的长时间行为，并找出$s$取何值时，对应的积分出现爆破。
+
+我们考虑
+\begin{equation}
+C_s(T,y)=\int_1^Tt^s\frac{e^{ikty}}{t}dt,~~0<s<1
+\end{equation}
+
+(6.3)式的积分，不仅形式上可以作为$\partial_yW, \partial_y^2W$之间的插值情况，而且是可以具体计算出来的。准确地说，用Sobolev空间的差商刻画(见附录)，的确可以直接算出来，待估计的项就是(6.3)式。
+
+$0<s<1$时，如下引理刻画了(6.3)的行为.
+
+\begin{lem}\songti\rm
+
+(1)
+\[
+C_s(T,0)=\frac{T^s-1}{s};
+\]
+
+(2)当$0<y<\frac{1}{2k}$时，成立
+\[
+C_s(T,y)\lesssim\min\{T^s,\frac{1}{(ky)^s}\}+O(1);
+\]
+
+(3)当$0<y<\frac{1}{2kT}$时，成立
+\[
+Re(C_s(T,y))\gtrsim\frac{T^s-1}{s}+O(1);
+\]
+
+(4)$T\rightarrow\infty$时，存在复常数$c$, 满足
+\[
+C_s(\infty,y)=\frac{c}{(ky)^s}+O(1).
+\]
+\end{lem}
+
+\begin{flushright}
+$\square$
+\end{flushright}
+
+那么由上述引理的(4)就知道，$y^s\in L^p[0,1]\Leftrightarrow sp<1$. 于是$p=2$时，对应的$s=\frac{1}{2}$. 即$\partial_y^{3/2}W$是临界阶数的导数。所以初值的边值非零时，就有$s=3/2$作为临界指标。

@@ -1,0 +1,288 @@
+﻿\chapter{$\mathbb{T}\times \mathbb{R}$上的渐近稳定性}
+\label{chap:example}
+\section{主要结果与Toy Model的构造}
+
+经过上一节对方程的约化之后，本节我们要研究的方程是
+
+\begin{equation}
+\begin{cases}
+\begin{aligned}
+\partial_t W&=\frac{if}{k}\Phi,\\
+(-1+(g(\frac{\partial_y}{k}-it))^2)\Phi&=W, \\
+(k,y,t)&\in L(\mathbb{Z}-\{0\})\times\mathbb{R}\times\mathbb{R}.
+\end{aligned}
+\end{cases}
+\end{equation}
+
+本章主要结果是如下定理
+
+
+\begin{thm} \songti\rm 设$s$是自然数, $f,g\in W^{s+1,\infty}(\mathbb{R})$, 并假设存在$c>0$使得$0<c<g<c^{-1}<\infty$. 再假设$L\|f\|_{W^{s+1, \infty}}$充分小. 那么对任意自然数$m$, 任意初值$w_0\in H_x^mH_y^s(\mathbb{T}_L\times\mathbb{R})$, (3,1)的解$W$满足
+\begin{equation}
+\|W(t)\|_{H_x^mH_y^s(\mathbb{T}_L\times\mathbb{R})}\lesssim \|w_0\|_{H_x^mH_y^s(\mathbb{T}_L\times\mathbb{R})}.
+\end{equation}
+\end{thm}
+
+
+\textbf{注 1 }事实上, 我们要证明的是$\|\hat{W}(t,k,\cdot)\|_{H_y^s(\mathbb{R})}\lesssim\|\hat{w_0}\|_{H_y^s(\mathbb{R})}$, 之后对$k$求和即可.
+
+\textbf{注 2 }该定理证明的主要困难在于如何造出衰减性（从而得出稳定性）. 注意到将$W$映到$\Phi$的映射，算子范数不增（更具体地说, 是$e^{-ikty}(-k^2+(g\partial_y)^2)e^{ikty}$作为$L^2\rightarrow L^2$的映射， 其算子范数与时间无关）。因此，我们如果想要做到稳定性，就必须像上一章提到的无粘性阻尼的结果一样，牺牲一些正则性来换取我们需要的衰减性。 在定理3.1.1的证明中，我们会计算出，对每个固定的频率$(k,\eta)$, $e^{-ikty}(-k^2+(g\partial_y)^2)e^{ikty}$对于的齐次方程的解具有$O(|\eta-kt|^{-2})$的衰减性.
+
+下面我们将建立所谓的"Toy Model". 考虑如下常系数方程:
+
+\begin{equation}
+\begin{cases}
+\begin{aligned}
+\partial_t \Lambda&=c\Psi,~~c\in \mathbb{C}\\
+(-1+(\frac{\partial_y}{k}-it)^2)\Psi&=\Lambda, \\
+\Lambda|_{t=0}&=\hat{w_0}(k,\cdot), \\
+(k,y,t)&\in L(\mathbb{Z}-\{0\})\times\mathbb{R}\times\mathbb{R}.
+\end{aligned}
+\end{cases}
+\end{equation}
+
+对常系数方程(3.3), 我们直接计算可得:
+
+\begin{thm} \songti\rm 设$w_0\in L^2$, 那么(3.3)的解是:
+\begin{equation}
+\Lambda=\mathcal{F}^{-1}\exp(c(\arctan(\frac{\eta}{k}-t)-\arctan(\frac{\eta}{k})))\mathcal{F}w_0.
+\end{equation}
+
+特别地, 若$w_0\in H^s$, 则$\Lambda(t)\in H^s$, $$\|\Lambda(t)\|_{H^s}\leq e^{|c|\pi}\|\hat{w_0}\|_{H^s},~~\forall t~~uniformly.$$
+\end{thm}
+
+接下来，我们的证明就是引入一个特殊的权函数，构造所谓的"ghost energy"来的出我们想要的估计，具体如下:
+
+\begin{thm}
+\songti\rm 设$c>0$, $\Lambda$是(3.3)的解(以$w_0$为初值). 设$C>0$, 令
+\begin{equation}
+E(t):=<\Lambda,\mathcal{F}_{\eta}^{-1}\exp(C\arctan(\frac{\eta}{k}-t))\mathcal{F}_y\Lambda>=:<\Lambda,A(t)\Lambda>. 
+\end{equation}
+那么只要$|c|<<C$足够小, 就能满足对$t$一致成立的估计:
+\begin{equation}
+e^{-C\pi}E(t)\leq\|\Lambda(t)\|_{L^2}^2\leq e^{C\pi}E(t)\leq e^{C\pi}E(0)\leq e^{2C\pi}\|w_0\|_{L^2}^2.
+\end{equation}
+\end{thm}
+
+\textbf{证明：}我们计算
+\begin{equation}
+\partial_t E(t)=<\Lambda,\dot{A}\Lambda>+2Re<A(t)\Lambda, c\Psi>.
+\end{equation}
+
+可以证明, $\dot{A}$是对称半负定的算子, 于是我们如果能证明$<\Lambda, \dot{A}\Lambda>\leq 0$能够吸收掉$|2Re<A(t)\Lambda, c\Psi>|$的增长, 那么就有$\partial_t E(t)\leq 0$, 进而结论成立.
+
+据Plancherel恒等式, 只要证明:
+\begin{equation}
+\int_{\mathbb{R}}\frac{-Ce^{C\arctan(\frac{\eta}{k}-t)}}{<\frac{\eta}{k}-t>^2}|\hat{\Lambda}(t,k,\eta)|^2d\eta+2\int_{\mathbb{R}}Re(c)\frac{e^{C\arctan(\frac{\eta}{k}-t)}}{<\frac{\eta}{k}-t>^2}|\hat{\Lambda}(t,k,\eta)|^2d\eta\leq 0.
+\end{equation}
+
+而这在$|c|\leq 0.5C$时显然成立.
+\begin{flushright}
+$\square$
+\end{flushright}
+
+有了这两个引理作为预备，我们可以证明$L_y^2$的稳定性.
+
+\section{$L^2$稳定性}
+
+本节开始，除非特殊说明，我们写的$W\in H^s(\mathbb{R})$均是指$W(t,k,y)\in H_y^s(\mathbb{R})$. 
+
+我们仍然考虑常系数方程的"Toy Model"如下:
+
+\textbf{定义：}设$k\in L(Z-\{0\})$, $R(t)\in L^2(\mathbb{R})$是给定的函数, 那么常系数的流函数(stream function)$\Psi[R](t)$定义为如下方程的解
+\begin{equation}
+(-1+(\frac{\partial_y}{k}-it)^2)\Psi[R](t,y)=R(t,y).
+\end{equation}
+特别地, 若$W$是(3.1)的解, 那么$\Psi(t,k,y)=\Psi[W](t,y)$.
+
+在证明$L^2$稳定性之前，我们给出如下引理，这是证明稳定性的关键估计.
+
+
+\begin{lem} 
+\songti\rm 设$g^{-1}\in W^{1,\infty}$, 且存在$c>0,0<c<g<c^{-1}<\infty$. 那么对任意$W(t)\in L^2$(不必是(3.1)的解), 如下方程
+\begin{equation}
+(-1+(g(\frac{\partial_y}{k}-it))^2)\Phi=W,
+\end{equation}
+\begin{equation}
+(-1+(\frac{\partial_y}{k}-it)^2)\Psi=W,
+\end{equation}
+\end{lem}
+的解$\Phi, \Psi$ 满足
+\begin{equation}
+\|\Phi\|_{\tilde{H}^1}^2:=\|\Phi\|_{L^2}^2+\|(\frac{\partial_y}{k}-it)\Phi\|_{L^2}^2\lesssim \|\Psi\|_{\tilde{H}^1}^2.
+\end{equation}
+
+我们暂且承认如上引理，下面借此来证明:
+
+\begin{thm}
+\songti\rm ($\mathbb{T}\times\mathbb{R}$的$L^2$稳定性) 设$W$是(3.1)的解, $g$满足引理3.2.1的条件. $A$是定理3.1.3中构造的算子. 令
+\begin{equation}
+I(t):=<W,A(t)W>_{L^2}:=\int |\hat{W}(t,k,\eta)|^2\exp(C\arctan(\frac{\eta}{k}-t))d\eta.
+\end{equation}
+再假设$L\|f\|_{W^{1,\infty}}$足够小. 那么对任意初值$w_0\in L^2(\mathbb{R})$, $I(t)$不增, 进而有
+\begin{equation}
+\|W(t)\|_{L^2}^2\lesssim I(t)\leq I(0)\lesssim\|w_0\|_{L^2}^2.
+\end{equation}
+\end{thm}
+
+\textbf{证明：}直接计算$I(t)$的导数:
+\begin{equation}
+\begin{aligned}
+\partial_t I(t)&=<W,\dot{A}W>+2Re<AW, if\Phi/k>  \\
+&\leq <W, \dot{A}W>+2\|f/k\|_{W^{1,\infty}}\|\Psi[AW]\|_{\tilde{H}^1}\|\Phi\|_{\tilde{H}^1} \\
+&\leq <W, \dot{A}W>+C_1\|f/k\|_{W^{1,\infty}}\|\Psi[AW]\|_{\tilde{H}^1}\|\Psi\|_{\tilde{H}^1}.
+\end{aligned}
+\end{equation}
+
+我们的目的是靠近定理3.1.3的形式，然后用该定理就能直接得出结论.
+
+注意到$A$是有界的Fouier乘子, 并与乘子$u\rightarrow \Psi[u]$可交换, 那么有
+\begin{equation}
+\|\Psi[AW]\|_{\tilde{H}^1}\leq \|A\|\|\Psi\|_{\tilde{H}^1}\leq \|A\|\sqrt{|<W,\Psi>|}.
+\end{equation}
+
+进一步,
+\begin{equation}
+\begin{aligned}
+-<W,A\Psi>&=-<(-k^2+(\frac{\partial_y}{k}-it)^2)\Psi,A\Psi> \\
+(By~Plancherel)&=\int(k^2+(\frac{\eta}{k}-t)^2)\exp(C\arctan(\frac{\eta}{k}-t))|\hat{\Psi}|^2d\eta.
+\end{aligned}
+\end{equation}
+
+注意到$A,A^{-1}$的算子范数一样, 这样的话就有
+$$\|\Psi\|_{\tilde{H}^1}^2\leq \|A\|(-<W,A\Psi>)\leq \|A\|^2\|\Psi\|_{\tilde{H}^1}^2.$$
+
+进而,
+
+\begin{equation}
+\begin{aligned}
+\partial_t I(t)&=<W,\dot{A}W>+2Re<AW, if\Phi/k>  \\
+&\leq <W, \dot{A}W>+C_2\|A\|^2\|f/k\|_{W^{1,\infty}}\|\Psi[AW]\|_{\tilde{H}^1}.
+\end{aligned}
+\end{equation}
+
+令$c:=C_2\|A\|^2\|f/k\|_{W^{1,\infty}}\|\Psi[AW]\|_{\tilde{H}^1}\lesssim e^{2C\pi}\|f\|_{W^{1,\infty}}L$充分小, 套用定理3.1.3即得结论.
+\begin{flushright}
+$\square$
+\end{flushright}
+
+下面证明引理3.2.1:
+
+\textbf{引理证明：}(3.10)的两边与$\Phi/g$作$L^2$内积，并由分部积分可得:
+\begin{equation}
+\int\frac{|\Phi|^2}{g}+g|(\frac{\partial_y}{k}-it)\Phi|^2 =<W,\frac{1}{g}\Phi>.
+\end{equation}
+
+而根据假设有$$c(\|\Phi\|_{L^2}^2+\|(\frac{\partial_y}{k}-it)\Phi\|_{L^2}^2)\gtrsim \|\Phi\|_{\tilde{H}^1}^2.$$ 因此，我们只需要估计$<W,\Phi/g>$.
+
+将(3.11)代入上式，分部积分可得:
+\begin{equation}
+\begin{aligned}
+<W,\Phi/g>&=<(-1+(\frac{\partial_y}{k}-it)^2)\Phi,\Phi/g> \\
+&\lesssim\sqrt{\|\Psi\|_{L^2}^2+\|(\frac{\partial_y}{k}-it)\Phi\|_{L^2}^2}\sqrt{\|\Phi/g\|_{L^2}^2+\|(\frac{\partial_y}{k}-it)(\Phi/g)\|_{L^2}^2} \\
+&\lesssim\|\frac{1}{g}\|_{W^{1,\infty}}\sqrt{\|\Psi\|_{L^2}^2+\|(\frac{\partial_y}{k}-it)\Phi\|_{L^2}^2}\sqrt{\|\Phi\|_{L^2}^2+\|(\frac{\partial_y}{k}-it)\Phi\|_{L^2}^2}.
+\end{aligned}
+\end{equation}
+
+化简之后就得到了引理3.2.1的结论. 
+
+\begin{flushright}
+$\square$
+\end{flushright}
+
+这样我们完成了$L^2$稳定性的证明. 下面我们用递推的方法证明Sobolev空间中的稳定性. 
+
+\section{任意阶Sobolev空间中的稳定性}
+
+证明在Sobolev空间中的稳定性是必要的, 因为我们在得出无粘性阻尼的过程中，需要“利用正则性换取衰减性”，因此必须要牺牲掉一部分较高的正则性，这就对解的高正则稳定性提出了要求. 我们希望的是, 对$\partial_y^s W$应用$L^2$稳定性的结果.
+
+首先考虑常系数的Toy Model. 我们不加证明地得出如下结论.
+
+
+\begin{cor}\songti\rm
+设$s\in \mathbb{N},w_0\in H^s$. 设$\Lambda$是(3.3)以$w_0$为初值的解, 那么$\partial_y^s \Lambda$是(3.3)以$\partial_y^s w_0$作初值的解. 并且对$c<Ce^{-C\pi}$, 成立$$\|\partial_y^s\Lambda\|_{L^2}\lesssim\|\partial_y^s w_0\|_{L^2}.$$
+\end{cor}
+\begin{flushright}
+$\square$
+\end{flushright}
+
+但对线性化的Euler方程而言，我们在处理解的若干阶导数时, 需要加入一些修正项, 原因是带$g$的项和微分算子的交换子会出现. 准确地说, 给定正整数$j$, $\partial_y^jW$满足
+\begin{equation}
+\begin{aligned}
+\partial_t\partial_y^jW &=\frac{i}{k}\partial_y^j(f\Phi)=:\frac{i}{k}\sum_{j'\leq j}c_{jj'}(\partial_y^{j-j'}f)\partial_y^j\Phi, \\
+(-1+(g(\frac{\partial_y}{k}-it))^2)\partial_y^{j'}\Phi&=\partial_y^{j'}W+[(g(\frac{\partial_y}{k}-it))^2,\partial_{y}^{j'}]\Phi.
+\end{aligned}
+\end{equation}
+
+为了对修正项进行控制, 我们引进
+\begin{equation}
+I_j(t)=<\partial_y^jW,A\partial_y^jW>, E_j(t)=\sum_{j'\leq j}I_{j'}(t).
+\end{equation}
+
+\begin{thm}\rm
+\songti 设$j$是正整数, $f,g$满足定理3.2.1的条件, 且$f,g\in W^{j+1, \infty}, \|f\|_{W^{j+1,\infty}}L$充分小. 那么对任何初值$w_0\in H^j$, $E_j(t)$不增, 进而:
+\begin{equation}
+\|W(t)\|_{H^j}^2\lesssim E_j(t)\leq E_j(0)\lesssim \|w_0\|_{H^j}^2.
+\end{equation}
+\end{thm}
+
+和3.2节的证明类似, 我们先估计常系数的Toy Model. 具体见下面的引理:
+
+\begin{lem}\songti\rm
+$$\|\partial_y^j\Phi\|_{\tilde{H}^1}^2\lesssim\sum_{j'\leq j}\|\partial_y^{j'}\Psi\|_{\tilde{H}^1}.$$
+\end{lem}
+
+先承认引理正确, 来证明定理3.3.1.
+
+\textbf{证明：}对任意$j'\leq j$, 都有
+\begin{equation}
+\begin{aligned}
+\partial_t I_{j'}(t)&=<\partial_y^{j'}W,\dot{A}\partial_y^{j'}W>+<A\partial_y^{j'}W,\partial_y^{j'}\frac{if\Phi}{k}> \\
+&\leq <\partial_y^{j'}W,\dot{A}\partial_y^{j'}W>+\|\Psi[A\partial_y^{j'}W]\|_{\tilde{H}^1}\|f/k\|_{W^{1+j',\infty}}\sum_{j''\leq j'}\|\partial_y^{j''}\Phi\|_{\tilde{H}^1}.
+\end{aligned}
+\end{equation}
+
+对$j'$求和, 由均值不等式即有
+\begin{equation}
+\begin{aligned}
+\partial_t E_j(t)&\leq \sum_{j'\leq j}<\partial_y^{j'}W,\dot{A}\partial_y^{j'}W>+\|f/k\|_{W^{1+j',\infty}}(\sum_{j'\leq j}\|\Psi[A\partial_y^{j'}W]\|_{\tilde{H}^1}^2+\|\partial_y^{j''}\Phi\|_{\tilde{H}^1}^2). \\
+&\lesssim\sum_{j'\leq j}<\partial_y^{j'}W,\dot{A}\partial_y^{j'}W>+\|f/k\|_{W^{1+j',\infty}}(\sum_{j'\leq j}\|\Psi[A\partial_y^{j'}W]\|_{\tilde{H}^1}^2+\|\partial_y^{j''}\Psi\|_{\tilde{H}^1}^2).
+\end{aligned}
+\end{equation}
+
+注意到$\partial_y^{j'}\Psi=\Psi[\partial_y^{j'}W]$. 那么由定理3.2.1就有, 当$c$充分小时, 对任意$j'$都成立
+\begin{equation}
+<\partial_y^{j'}W,\dot{A}\partial_y^{j'}W>+c(\|\Psi[A\partial_y^{j'}W]\|_{\tilde{H}^1}^2+\|\Psi[\partial_y^{j'}W]\|_{\tilde{H}^1}^2)\leq 0.
+\end{equation}
+
+再设$$\sup_{k\neq 0}\|f/k\|_{W^{j+1,\infty}}<<c.$$
+
+对$j$求和即可得到结论.
+\begin{flushright}
+$\square$
+\end{flushright}
+
+\textbf{引理证明：}我们对$j$归纳证明. $j=0$的情况即是$L^2$稳定性，这已经得到证明。设对$j-1$成立，那么要证明对$j$成立。即
+\begin{equation}
+\text{For }j\geq 1,~~\|\partial_y^j\Phi\|_{\tilde{H}^1}+\sum_{j'\leq j-1}\|\partial_y^{j'}\Phi\|_{\tilde{H}^1}.
+\end{equation}
+
+在(3.21)的第二个式子中, 令$j'=j$, 并且两边与$\partial_y^j\Phi/g$作内积, 模仿引理3.2.1的证明即有:
+\begin{equation}
+\|\partial_y^j\Phi\|_{\tilde{H}^1}^2\lesssim \|\partial_y^j\Psi\|_{\tilde{H}^1}\|\partial_y^j\Phi\|_{\tilde{H}^1}+<\partial_y^j\Phi,[(g(\frac{\partial_y}{k}-it))^2,\partial_{y}^{j}]\Phi>.
+\end{equation}
+
+为了估计李括号项, 我们注意到, $[(g(\frac{\partial_y}{k}-it))^2,\partial_{y}^{j}]\Phi$中, $g$至少被求了1阶$y$方向的偏导数. 从而李括号项可以由$\partial_y^{j'}\Phi,(g(\frac{\partial_y}{k}-it))\partial_y^{j'}\Phi,(g(\frac{\partial_y}{k}-it))^2\partial_y^{j'}\Phi$来表示(其中$j'<j$).
+
+分部积分可得
+\begin{equation}
+\|\partial_y^j\Phi\|_{\tilde{H}^1}^2\lesssim \|\partial_y^j\Psi\|_{\tilde{H}^1}\|\partial_y^j\Phi\|_{\tilde{H}^1}+C(g)\|\partial_y^j \Phi\|_{\tilde{H}^1}\sum_{j'\leq j-1}\|\partial_y^{j'}\Phi\|_{\tilde{H}^1}.
+\end{equation}
+
+上式两边除以$\|\partial_y^j\Psi\|_{\tilde{H}^1}$即可.
+
+\begin{flushright}
+$\square$
+\end{flushright}
+
+这样的话，我们就证明了$\mathbb{T}\times\mathbb{R}$上的2D Euler线性化方程，在任意阶索伯列夫空间中的渐近稳定性。这也说明该情况下，解的确可以做到高正则性，为后面得出无粘性阻尼的结果提供了可能性。事实上，在最后一章，我们会对$\|W\|_{L_x^2H_y^2}$给出一致的估计，并得到optimal的衰减与阻尼结果. 

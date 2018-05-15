@@ -1,0 +1,25 @@
+\chapter{Experiments}
+
+\subsection{Datasets}
+Since our bionic design method is pioneering, nobody has collected enough number of high quality images about biological micro structures. Useful datasets are very limited on the Internet. We have to apply data augmentation on limited images to prove the empirical validation of our methods.
+
+\subsubsection{Bamboo Cross-section Images}
+The primary image is a bamboo cross-section image shown in $**$. We randomly crop 64*64 patches on the primary image and apply rotation and flipping operations to generate new images with different angles. The resulting dataset consist of 24576 RGB images of size 64*64. The patches are shown in **.
+
+\subsubsection{Midrib Images}
+The primary images are three images of Symplocos mosenii from MidribDataset. We also randomly crop 64*64 patches and apply rotation and flipping operations, but since we would like to focus on the specific biological structure of the edge of the midrib, we’ve wiped off a large portion of images that fail to contain the edge. 
+
+\subsection{Details of Adversarial Training}
+
+\subsubsection{Network Structure and GAN method}
+Since the dataset consist of images, we would like to include convolution layers to capture biological features of micro structures. We follow the same network design principle with DCGAN.
+
+However, since our dataset are generated from several primary images, the quality of the dataset cannot match those used in DCGAN paper. In fact, directly applying DCGAN on our dataset may cause mode collapse, i.e. when varying latent vector z, the output remains unchanged.(see figure**). Thus, we choose loss functions of WGAN, but still use DCGAN’s network structure.
+
+In Generator, a 128 dimensional uniform distribution is projected to a convolutional representation with a large number of feature maps. Then a series of four fractionally-stride convolutions are executed to map these feature maps to a 64*64 3-channel image. Every convolution is followed by a relu function as activation function to increase nonlinearity. In the end, we use a tanh function to scale the image into a color space between [-1,1]. Since we would like to use loss functions of WGAN, there is no need to add batch normalization.
+
+In Discriminator, the inputs are scaled to [-1,1], and then a series of four convolutional layers map the inputs into feature representations and finally we get a scalar. In WGAN framework, we don’t need to use sigmoid function to transform this scalar into probability. Since the Discriminator serves as an approximation of EM-distance, the scalar represents an approximate distance between generative distribution and real sample distribution, indicating the realism of the image.
+
+
+\subsection{Solving User’s Constraints}
+

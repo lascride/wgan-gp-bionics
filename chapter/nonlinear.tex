@@ -1,0 +1,214 @@
+﻿
+\chapter{无粘性阻尼与非线性稳定性}
+本章将简要地讨论以下两点：
+
+1. 线性化方程的无粘性阻尼(Landau Damping)，及(最佳)衰减速率估计；
+
+2. 非线性方程的解，其稳定性是否与线性化方程解的稳定性具有一致性；
+
+对于第一个问题，我们将要介绍“利用正则性换取衰减性”这一基本机制。简要地说，我们利用"Toy Model"和能量法，证明了方程的解在具有一定正则性的函数空间($H^s$)中稳定，再牺牲掉(高)正则性，换来长时间趋于某种平均态的结果(Damping)，最后再利用Du'Hamel原理，得出散射的结果。
+
+对于第二个问题，我们的困难是对非线性项$\nabla W\cdot\nabla \Phi$进行估计。我们将证明某些极为特殊的情况下，非线性问题解的稳定性，的确与线性化问题解的稳定性是一致的。但我们还会证明，对$\mathbb{T}\times [a,b]$中的方程，非线性问题不可能具有高阶稳定性，从而\citep{BM15}中提到的Gevery稳定性在这里不可能成立。
+
+
+\section{线性无粘性阻尼与散射}
+
+先给出如下引理:
+
+\begin{lem} \songti\rm 设$D=\mathbb{T}_L\times\mathbb{R}$或$\mathbb{T}_L\times [0,1]$, 初值满足$<w_0>_x=0,g\in W^{2,\infty}$. 那么如下结果成立:
+
+(1)若$W(t)\in H_x^{-1}H_y^1(D)$, 那么$$\|v(t)-<v>_x\|_{L^2(D)}=O(t^{-1})\|W(t)\|_{H_x^{-1}H_y^1(D)},~~as~t\rightarrow\infty.$$
+
+(2)若$W(t)\in H_x^{-1}H_y^2(D)$, 那么$$\|v_2(t)\|_{L^2(D)}=O(t^{-2})\|W(t)\|_{H_x^{-1}H_y^2(D)},~~as~t\rightarrow\infty.$$
+\end{lem}
+
+暂且承认引理正确，我们来证明如下定理:
+
+\begin{thm}
+\songti\rm (线性无粘性阻尼) 设$w_0\in L_x^2H_y^2,<w_0>_x=0$, 并假设
+\[
+\begin{aligned}
+\partial_t W&=f\partial_x \Phi, \\
+(\partial_x^2+(g(\partial_y-t\partial_x))^2)\Phi&=W. 
+\end{aligned}
+\]
+
+再假设存在$c>0$, 使得$c<g<c^{-1}, \frac{1}{g},f\in W^{3,\infty},L\|f/k\|_{W^{3,\infty}}$充分小. 若$D=\mathbb{T}_L\times[0,1]$, 则再加上条件$w_0|_{y=0,1}=0$, 那么存在$W_{\infty}\in L_x^2H_y^2$使得:
+\[
+\begin{aligned}
+\|W\|_{L_x^2H_y^2}&\lesssim\|w_0\|_{L_x^2H_y^2} \\
+\|v-<v>_x\|_{L^2}&=O(1/t) \\
+\|v_2\|_{L^2}&=O(1/t^2) \\
+W(t)&\xrightarrow{L^2}W_{\infty}
+\end{aligned}
+\]
+\end{thm}
+
+\textbf{证明：}第一个式子即是$H^2$稳定性的结果。
+
+又因为$<W(t)>_x=<w_0>_x=0$, 所以由Poincare不等式即有$$\|W\|_{H_x^{-1}H_y^2}\lesssim\|W\|_{L_x^2H_y^2}\lesssim\|w_0\|_{L_x^2H_y^2}.$$ 再由引理即得第二、第三个式子。
+
+根据Du'Hamel原理，我们有$$W(t,x,y)=w_0(x,g(y))+\int_0^tf(y)V_2(\tau,x,y)d\tau.$$
+
+而$$\|fV_2\|_{L^2}\lesssim\|f\|_{\infty}\|v_2\|_{2}=O(t^{-2}).$$ 从而Du'Hamel公式的$L^2$极限$W_{\infty}$存在. 又根据第一个式子，以及Du'Hamel公式的积分项在$L^2$中一致有界。由Banach-Alaoglu定理和$L_x^2H_y^2$范数的弱下半连续性即有:$$\|W_{\infty}\|_{L_x^2H_y^2}\lesssim\|w_0\|_{L_x^2H_y^2}.$$
+\begin{flushright}
+$\square$
+\end{flushright}
+
+有了这个定理，我们有如下推论:
+
+\begin{cor}\songti\rm 
+设$w_0\in L^2$, 则存在$W_{\infty}\in L^2$使得$W(t)\rightarrow W_{\infty}~~in~L^2.$
+\end{cor}
+\begin{flushright}
+$\square$
+\end{flushright}
+
+类似地，我们有:
+
+\begin{cor}\songti \rm
+$0<s<1/2$, $w_0|_{y=0,1}\neq 0.$ $\|W\|_{H^1},\|\partial_y W\|_{H^s}$关于时间一致有界，那么存在$W_{\infty}\in L_x^2H_y^s$使得
+\[
+\begin{aligned}
+\|v_2\|_{L^2}&=O(1/t^{-1-s}) \\
+W(t)&\xrightarrow{L^2}W_{\infty} \\
+\|W(t)-W_{\infty}\|_{L^2}&=O(t^{-s}).
+\end{aligned}
+\]
+\end{cor}
+\begin{flushright}
+$\square$
+\end{flushright}
+
+现在我们只需要证明引理7.1.1即可，这需要用到一点振荡积分的技巧（不断地分部积分）。
+
+\textbf{引理7.1.1的证明：}首先考虑$D=\mathbb{T}_L\times\mathbb{R}$的情况。此时直接计算可以得出:
+\begin{equation}
+\begin{aligned}
+\|v-<v>_x\|_{L^2}^2&\leq\|v\|_{L^2}^2=\int\int_{D}|\nabla^{\perp}\phi|^2 \\
+&=-\int\int_{D}\phi\Delta\phi=\int\int_D\phi w.\\
+\Rightarrow & \|v-<v>_x\|_{L^2(D)}\lesssim\sup_{\psi\in H^1(D), \|\psi\|_{H^1}\leq 1}\int\int_D\psi w.
+\end{aligned}
+\end{equation}
+
+类似地，我们可以证明: $\mathbb{T}_{L}\times[0,1]$的情况下，也有:
+\begin{equation}
+\|v\|_{L^2}\lesssim\sup_{\psi\in \hat{H}^1(D), \|\psi\|_{H^1}\leq 1}\int\int_D\psi w, \hat{H}^{1}=\{\psi\in H^1:\psi=0~on~\{y=0,1\}\}.
+\end{equation}
+
+下面，记$f_k(t,y):=\mathcal{F}_x W(t,k,y)$, 那么:
+\[
+\begin{aligned}
+\|v-<v>_x\|_{L^2}&\lesssim \sup_{\psi\in\hat{H}^1,\|\psi\|_{H^1}=1}\left|\int\int_D\psi w\right|\\
+&=\sup_{\psi}\left|\sum_{k\neq 0}\int\psi_{-k}f_k e^{iktU(y)}\right| \\
+&=-\sup_{\psi}\left|\sum_{k\neq 0}\int \frac{e^{iktU(y)}}{ikt}\partial_y(\frac{1}{U'}\psi_{-k}f_{k})\right|\\
+&\lesssim\sup_{\psi}O(1/t)\|W\|_{H_x^{-1}H_y^1}\|\psi\|_{H^1}.
+\end{aligned}
+\]
+
+再证(2), 注意到$\Delta v_2=\partial_x w$, 我们设$\Delta\psi=v_2$, 那么有:
+\[
+\begin{aligned}
+\int\int_D\partial_x w\psi&=\int\int_{D}\Delta v_2\psi \\
+&=\int_0^1\psi\partial_x v_2|_{x=0}^{x=L}dy+\int_{\mathbb{T}_L}\psi\partial_y v_2|_{y=0}^{y=1}dx-\int\int_{\mathbb{T}_L\times [0,1]}\nabla v_2\cdot\nabla\psi \\
+&=-\int_0^1v_2\partial_x\psi|_{x=0}^{x=L}dy-\int_{\mathbb{T}_L}v_2\partial_y\psi_{y=0}^{y=1}dx+\int\int_Dv_2\Delta\psi\\
+&=\|v_2\|_{L^2}^2.
+\end{aligned}
+\]
+
+这样, $$\|v_2\|_{L^2}^2=\int\int\partial_x w\psi.$$
+
+照上面的方法再分部积分一次即得(2)的结论。
+\begin{flushright}
+$\square$
+\end{flushright}
+
+由此可见，我们处理这个方程的\textbf{基本法}就是：首先，利用Toy Model和能量估计得出解在某些$H^s$中的稳定性(获得正则性)；之后，证明较低正则性的无粘性阻尼的结果(牺牲正则性，换取衰减性)；最后利用Du'Hamel原理得出散射(Scattering)的结果。
+
+
+\section{非线性稳定性与线性稳定性的一致性}
+
+在此之前，我们讨论的都是线性化方程解的稳定性。很自然地会想到，对原先的非线性方程，是否能够通过线性稳定性来导出非线性稳定性？若令$U(y)=y, D=\mathbb{T}\times\mathbb{R}$， Jacob Bedrossian和Nader Masmoudi的长达105页的文章\text{BM15}中证明了Gevery空间中的非线性稳定性，其中运用了大量仿积分解等调和分析的内容。在那篇文章中，非线性的damping是牺牲了极高的正则性才得到的。
+
+对于我们现在考虑的方程，在线性化的过程中，我们忽略掉的项是$(v\cdot\nabla)w=v_1\partial_xw+v_2\partial_y w$. 现在作坐标变换$(t,x,y)\rightarrow(t,x-tU(y),y)$, 非线性项就变成$$-(\partial_y -tU'\partial_x)\Phi\partial_x W+\partial_x \Phi(\partial_y-tU'\partial_x)W=\nabla^{\perp}\cdot\nabla{W}.$$ 再结合无粘性阻尼的结果，就有$\|\nabla^{\perp}\Phi\|_{L^2}=O(t^{-2})$. 进而$$\sup_{T>0}\left\|\int_0^Tv\cdot\nabla w dt\right\|\lesssim 1.$$ 这也就说明了非线性项的贡献在此意义下是有界的。具体，我们以如下两个定理作为叙述
+
+\begin{thm}\songti\rm
+设$D=\mathbb{T}\times\mathbb{R}, w_0\in H^3(D)$. 设定理3.3.1中$j=3$的条件成立, 那么:
+$$\|\nabla^{\perp}\Phi\cdot\nabla W\|_{L^2}=O(t^{-2}).$$ 特别地，存在渐近profile~$W_{con}^{\infty}$, 使得$$W(t)+\int_0^t\nabla^{\perp}\Phi\cdot\nabla Wd\tau\xrightarrow{L^2}W_{con}^{\infty}$$
+\end{thm}
+
+\textbf{证明：}由Sobolev稳定性有$$\|W\|_{H^3}\lesssim\|w_0\|_{H^3}.$$ 那么由引理7.1.1就有$$\|\nabla^{\perp}\Phi\|_{L^2}=O(t^{-2})\|W(t)\|_{H^3}=O(t^{-2})\|w_0\|_{H^3}.$$
+据Sobolev嵌入定理即有$$\|\nabla W\|_{\infty}\lesssim\|w_0\|_{H^3}.$$ 再由Holder不等式即完成证明.
+\begin{flushright}
+$\square$
+\end{flushright}
+
+对$\mathbb{T}_L\times[0,1]$的结果如下:
+\begin{thm}\songti\rm
+设$f,g\in W^{3,\infty},\int w_0(x,y)dx=0$. 并且存在$2<s<3$使得$\|W(t)\|_{H^s}$一致有界，那么就有$$\|v\cdot\nabla w\|_{L^2}=0(t^{1-s}). $$特别地，存在渐近profile~$W_{con}^{\infty}$, 使得$$W(t)+\int_0^t\nabla^{\perp}\Phi\cdot\nabla Wd\tau\xrightarrow{L^2}W_{con}^{\infty}$$
+\end{thm}
+\begin{flushright}
+$\square$
+\end{flushright}
+
+我们注意到，在上述结果中对非线性项的控制，和非线性的damping都是在牺牲了很高的正则性的条件下导出的。但上面的讨论，并没有提到非线性稳定性的正则性能提到多高，也没有提到用线性方程去“逼近”非线性方程的效果如何。主要的困难之一是，在没有非线性稳定性的条件下，做到对非线性项高正则性的控制是非常困难的。因此，接下来我们对$\mathbb{T}\times [0,1]$的情况，先假设某种非线性稳定性成立，再来估计非线性项的贡献，并证明次情况下不可能有高阶的非线性稳定性。
+
+为此，我们考虑最原始的Euler方程:
+\[
+\begin{aligned}
+\partial_tw+(v\cdot \nabla)w&=0, \\
+v&=\nabla^{\perp}\phi, \\
+\Delta\phi&=w.
+\end{aligned}
+\]
+
+令$w'=w-<w>_x,\phi'=\phi-<\phi>_x$. 那么直接计算可得:
+\[
+\begin{aligned}
+\partial_t w-(\partial_y<\phi>_x)\partial_x w'+(\partial_y<w>_x)\partial_x\phi'&=-(\nabla^{\perp}\phi^{'}\cdot\nabla w')'\\
+\partial_t <w>_x&=-<\nabla^{\perp}\phi^{'}\cdot\nabla w'>_x \\
+\end{aligned}
+\]
+
+令$-\partial_y <\phi>_x=:U(t,y)$, 在进行坐标变换$(x,y)\rightarrow(x-\int_0^t U(\tau,y)d\tau,y)$. 就有
+\begin{equation}
+\partial_t W=(\partial_y^2 U(t,y))\partial_x\Phi+\nabla^{\perp}\Phi\cdot\nabla W.
+\end{equation}
+
+\begin{thm}\songti\rm (逼近)
+设(7.3)的解为$W(t,x,y)$, 且存在$s>2$使得存在$\epsilon>0$, 满足:$$\|\nabla^{\perp}\Phi\|_{H^s}=O(t^{-1-\epsilon})\|W\|_{H^{s+2+\epsilon}}.$$ 再设$\|W(t)\|_{H^{s+2+\epsilon}}$一致有界，那么就有:
+$$\|\nabla^{\perp}\Phi\cdot\nabla W\|_{H^s}=O(t^{-1-\epsilon}).$$ 特别地:$$\int_0^t\|\nabla^{\perp}\Phi\cdot\nabla W\|_{H^s}d\tau$$一致有界并收敛.
+\end{thm}
+
+\textbf{证明：}此时$H^s$是代数，于是结论显然。
+\begin{flushright}
+$\square$
+\end{flushright}
+
+关于高阶索伯列夫空间中的爆破，事实上非线性方程也有对应的结论，具体如下。
+\begin{thm}\songti\rm
+设$\partial_y^2U(t,y)|_{y=0}>c>0$, 且存在整数$k$, 使得$$Re\mathcal{F}_xW(t,k,y)|_{y=0}>c>0, |\mathcal{F}_x(\partial_y (\nabla^{\perp}\cdot\nabla W))(t,k,y)|_{y=0}|=O(t^{-1-\epsilon}).$$ 那么$$|(\mathcal{F}_x\partial_y W)(t,k,y)|_{y=0}|\gtrsim\log(t).$$ 进而当$s>2$时就有$$\sup_{t>0}\|W(t)\|_{H^s}=+\infty.$$
+\end{thm}
+
+\textbf{证明：}对(7.9)两边求$y$的偏导数，限制在$y=0$上，再对$x$作Fourier变换得到:
+\begin{equation}
+\partial_t\mathcal{F}_x \partial_y W(t,k,0)=\partial_y^2 U(t,0)ik(\mathcal{F}_x\partial_y\Phi)(t,k,0)+O(t^{-1-\epsilon}).
+\end{equation}
+
+而且$\mathcal{F}_x\Phi$是如下椭圆方程的解:
+$$\left(-k^2+\left(\partial_y -ikt\int_0^t\partial_y U(\tau,,y)d\tau\right)^2\right)\mathcal{F}_x\Phi=\mathcal{F}_x W.$$
+
+对应齐次方程的一个解是$$u(t,y)=\exp\left(\int_0^t(U(\tau,y)-U(\tau,0))d\tau\right)u(0,y).$$
+
+和引理4.4.4类似，我们可以证明$\mathcal{F}_x\Phi(t,0)$可由$<\mathcal{F}_x W,u>_{L^2}$表示出来, 再用分部积分即得要证的结论。
+\begin{flushright}
+$\square$
+\end{flushright}
+
+\textbf{注 1：}根据Sobolev嵌入定理, $|\mathcal{F}_x(\partial_y (\nabla^{\perp}\Phi\cdot\nabla W))(t,k,y)|_{y=0}|$的衰减往往是极高阶Sobolev空间中无粘性阻尼的结果。具体地，我们假设$0<c<\partial_yU<c^{-1}<\infty,t\geq T$. 那么
+$$\|\partial_y(\nabla^{\perp}\Phi\cdot\nabla W)\|_{L^{\infty}}\lesssim\|\nabla^{\perp}\Phi\cdot\nabla W\|_{H^{2+\epsilon}}\lesssim \|W\|_{H^{4+\epsilon}}\|\Phi\|_{H^{4+\epsilon}}\lesssim \|W\|_{H^6}^2/t^{2-\epsilon}.$$
+
+\textbf{注 2：}这直接证明了\citep{BM15}中提到的Gevery稳定性是不可能成立的。
+\begin{flushright}
+$\square$
+\end{flushright}

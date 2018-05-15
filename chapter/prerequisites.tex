@@ -1,0 +1,104 @@
+﻿
+\chapter{分数阶Sobolev空间}
+
+\section{空间的刻画}
+从本文第三章开始，分数阶索伯列夫空间的性质以及被我们反复利用，来消除各类估计中的$f,g$. 那么作为附录，我们将对部分结果给出简要的证明，以说明我们的操作是合理的。以下结论的证明都可以在文献\citep{RS96}中找到。
+
+\begin{thm}\songti\rm 设$0<s<1$, 则存在常数$C_s$, 使得对任意Schwartz函数$u\in \mathcal{S}(\mathbb{R})$, 成立:
+\[
+\||\eta|^s\mathcal{F}u\|_{L^2}^2=C_s\int\int_{\mathbb{R}^2}\frac{|u(x)-u(y)|^2}{|x-y|^{1+2s}}dxdy.
+\]
+特别地，上式左右两边定义了同一个半范数。分数阶索伯列夫空间$H^s(\mathbb{R})$就定义为$\mathcal{S}(\mathbb{R})$关于$\|u\|_{L^2}^2+\||\eta|^s\mathcal{F}u\|_{L^2}^2$的闭包。该空间为Hilbert空间，具有内积:
+\[
+\begin{aligned}
+\langle u,v\rangle_{H^s}&=\langle u,v\rangle_{L^2}+\langle |\eta|^{s/2}\mathcal{F}u,|\eta|^{s/2}\mathcal{F}v\rangle_{L^2} \\
+&=\langle u,v\rangle_{L^2}+C_s\int\int_{\mathbb{R}^2}\frac{(u(x)-u(y))\overline{(v(x)-v(y))}}{|x-y|^{1+2s}}
+\end{aligned}
+\]
+\end{thm}
+\begin{flushright}
+$\square$
+\end{flushright}
+
+\textbf{注：}对$s>1,s\notin\mathbb{N}$, $H^s$可以定义为$u\in H^{s-1},\partial u\in H^{s-1}$. 高维的情况也可以类似定义，但定义中的核函数要做出改变。本文中，我们感兴趣的是$[0,1]$上和$\mathbb{T}$上的Sobolev空间。
+
+\begin{thm}\songti\rm 设$0<s<1$, $H^s[0,1]$定义为$C^{\infty}[0,1]$依$$\|u\|_{L^2[0,1]}^2+\int\int_{[0,1]^2}\frac{|u(x)-u(y)|^2}{|x-y|^{1+2s}}dxdy$$取闭包所得的空间。进一步，$H^s[0,1]$是Hilbert空间、当$s>1/2$时，我们有嵌入定理:$H^s\subset C[0,1]$。特别地，存在迹映射使得$$|u|_{y=0,1}|\lesssim_s \|u\|_{H^s[0,1]}.$$
+\end{thm}
+\begin{flushright}
+$\square$
+\end{flushright}
+
+\begin{thm} \songti\rm 设$0<s<1/2$, 那么对任意$u\in C^{\infty}(\mathbb{T})$, 成立:$$\||\eta|^s\mathcal{F}u\|_{L^2}^2\lesssim\int\int_{\mathbb{T}\times [-1/2,1/2]}\frac{|u(x+y)-u(y)|^2}{|x|^{1+2s}}dxdy\lesssim\||\eta|^s\mathcal{F}u\|_{L^2}^2.$$
+特别地，中间和两边定义了同一个半范数。进一步地，$$\int\int_{\mathbb{T}\times [-1/2,1/2]}\frac{|u(x+y)-u(y)|^2}{|x|^{1+2s}}dxdy=\langle \mathcal{F}u, B_n|n|^{2s}\mathcal{F}u\rangle_{l^2},$$ $$1\lesssim B_n:=|n|^{-2s}\int_{-1/2}^{1/2}\frac{\sin^2(nx)}{4|x|^{2s+1}}dx\lesssim 1.$$
+
+索伯列夫空间$H^s(\mathbb{T})$定义为$C^{\infty}(\mathbb{T})$在$$\|u\|_{L^2}^2+\int\int_{\mathbb{T}\times [-1/2,1/2]}\frac{|u(x+y)-u(y)|^2}{|x|^{1+2s}}dxdy$$下取闭包所得的空间，也是Hilbert空间，内积为$$\langle u, v\rangle_{H^s(\mathbb{T})}:=\langle u,v\rangle _{L^2}+\langle\mathcal{F}u,|n|^{2s}\mathcal{F}v\rangle_{l^2}.$$
+\end{thm}
+\begin{flushright}
+$\square$
+\end{flushright}
+
+\textbf{注：}显然，$H^s(\mathbb{T})\subset H^s[0,1]$. 证明如下:
+
+\begin{thm}
+\songti\rm 设$0<s<1$, 则$\|u\|_{H^s[0,1]}\lesssim\|u\|_{H^s(\mathbb{T})}$.
+\end{thm}
+
+\textbf{证明：}
+\[
+\begin{aligned}
+\|u\|_{\dot{H}^s[0,1]}^2&=\int_0^1\int_0^1\frac{|u(x)-u(y)|^2}{|x-y|^{1+2s}}dxdy \\
+&=\int_0^1\int_{-y}^{1-y}\frac{|u(z+y)-u(y)|^2}{|z|^{1+2s}}dxdy \\
+&\leq\int_0^1\int_{-1}^{2}\frac{|u(z+y)-u(y)|^2}{|z|^{1+2s}}dxdy \\
+&\leq\|u\|_{\dot{H}^s(\mathbb{T})}^2+C\|u\|_{L^2}^2\lesssim\|u\|_{H^s(\mathbb{T})}^2.
+\end{aligned}
+\]
+\begin{flushright}
+$\square$
+\end{flushright}
+
+\section{常用性质}
+
+我们经常用到的两个结果如下:
+\begin{lem}
+\songti\rm 设$g\in W^{1,\infty}$是周期的Lipschitzian函数，则对任意的$s<1/2,u\in H^s(\mathbb{T})$, 成立$gu\in H^s(\mathbb{T})$, 并且
+\[
+\|ug\|_{H^s}\leq \|g\|_{W^{1,\infty}}\|u\|_{H^s}.
+\]
+\end{lem}
+\begin{flushright}
+$\square$
+\end{flushright}
+
+\begin{lem}
+\songti\rm (交换子估计) 设$g\in C^{0,1}(\mathbb{T}),g^2>c>0,0<s<1/2.$ 那么对任意$u\in H^s(\mathbb{T})$都有
+\[
+Re\langle u,g^2u\rangle _{H^s}\geq c\|u\|_{H^s}^2-C_s\|g^2\|_{\dot{C}^{0,1}}\|u\|_{L^2}.
+\]
+\end{lem}
+
+\textbf{引理A.2.1的证明：} 直接计算:
+\[
+\begin{aligned}
+&~~~~\int\int_{\mathbb{T}\times [-1/2,1/2]}\frac{|u(x+y)g(x+y)-u(y)g(y)|^2}{|x|^{1+2s}}dxdy \\
+&\lesssim \int\int_{\mathbb{T}\times [-1/2,1/2]}|g(x+y)|^2\frac{|u(x+y)-u(y)|^2}{|x|^{1+2s}}dxdy\\
+&~~~~+\int\int_{\mathbb{T}\times [-1/2,1/2]}|u(y)|^2\frac{|g(x+y)-g(y)|^2}{|x|^{1+2s}}dxdy \\
+&\lesssim\|g\|_{\infty}^2\|u\|_{H^s}^2+\int\int_{\mathbb{T}\times [-1/2,1/2]}|u(y)|^2\frac{\|g\|_{W^{1,\infty}}^2}{|x-y|^{2s-1}}\\
+&\lesssim \|g\|_{W^{1,\infty}}\|u\|_{H^s}.
+\end{aligned}
+\]
+\begin{flushright}
+$\square$
+\end{flushright}
+
+\textbf{引理A.2.2的证明：}直接计算有:
+\[
+\begin{aligned}
+Re\langle u,g^2 u\rangle_{H^s(\mathbb{T})}&= Re\int\int\frac{\overline{(u(x+y)-u(y)}(g^2(x+y)u(x+y)-g^2(y)u(y))}{|x|^{1+2s}}dxdy \\
+&=\int\int g^2((x+y))\frac{|u(x+y)-u(y)|^2}{|x|^{1+2s}}dxdy \\
+&~~~~-Re\int\int\frac{g^2(x+y)-g^2(y)}{|x|^{1+2s}}\overline{(u(x+y)-u(y))}u(y)dxdy.\\
+&\gtrsim c\|u\|_{H^s}^2-C_s\|g^2\|_{\dot{C}^{0,1}}\|u\|_{L^2}.
+\end{aligned}
+\]
+\begin{flushright}
+$\square$
+\end{flushright}

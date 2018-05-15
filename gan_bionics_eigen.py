@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed May 16 04:33:16 2018
+
+@author: lenovo
+"""
 import os, sys
 sys.path.append(os.getcwd())
 
@@ -20,6 +26,7 @@ import tflib.mnist
 import tflib.plot
 import argparse
 import load_image
+import load_image_eigen
 
 
 lib.print_model_settings(locals().copy())
@@ -27,15 +34,15 @@ lib.print_model_settings(locals().copy())
 def parse_args():
     parser = argparse.ArgumentParser(description='cut images')
     parser.add_argument('--MODE', dest='MODE', help='dcgan, wgan, or wgan-gp', default='wgan-gp', type=str)
-    parser.add_argument('--output_path', dest='output_path', help='the output path', default='e:/project/project/image/input_3_64_10000_rot/10', type=str)
-    parser.add_argument('--DATA_DIR', dest='DATA_DIR', help='the input path', default='e:/project/project/image/input_3_64_10000_rot/10', type=str)
+    parser.add_argument('--output_path', dest='output_path', help='the output path', default='e:/project/project/image/input_bamboo_64', type=str)
+    parser.add_argument('--DATA_DIR', dest='DATA_DIR', help='the input path', default='e:/project/project/image/input_bamboo_64', type=str)
     parser.add_argument('--color_mode', dest='color_mode', help='rgb or gray-scale', default='rgb', type=str)
     parser.add_argument('--DIM', dest='DIM', help='Model dimensionality',type=int, default=64)
     parser.add_argument('--BATCH_SIZE', dest='BATCH_SIZE', help='Batch size',type=int, default=128)
     parser.add_argument('--CRITIC_ITERS', dest='CRITIC_ITERS', help='For WGAN and WGAN-GP, number of critic iters per gen iter',type=int, default=5)
     parser.add_argument('--LAMBDA', dest='LAMBDA', help='Gradient penalty lambda hyperparameter',type=int, default=10)
     parser.add_argument('--ITERS', dest='ITERS', help='How many generator iterations to train for',type=int, default=200000)
-    parser.add_argument('--OUTPUT_DIM', dest='OUTPUT_DIM', help='Number of pixels in MNIST (28*28)',type=int, default=64*64*3)
+    parser.add_argument('--OUTPUT_DIM', dest='OUTPUT_DIM', help='Number of pixels in MNIST (28*28)',type=int, default=64*64*4)
     parser.add_argument('--output_lenth', dest='output_lenth', help='lenth of the output images',type=int, default=64)
     parser.add_argument('--img_num', dest='img_num', help='the number of the output images', type=int, default=4096)
     parser.add_argument('--model_dir', dest='model_dir', type=str, default='models',
@@ -103,7 +110,7 @@ if __name__ == '__main__':
     
         output = nonlinearity(output)
     
-        output = lib.ops.deconv2d.Deconv2D('Generator.5', dim, 3, 5, output)
+        output = lib.ops.deconv2d.Deconv2D('Generator.5', dim, 4, 5, output)
         output = tf.tanh(output)
     
         lib.ops.conv2d.unset_weights_stdev()
@@ -114,13 +121,13 @@ if __name__ == '__main__':
     
     
     def Discriminator(inputs, dim=args.DIM, bn=True, nonlinearity=LeakyReLU):
-        output = tf.reshape(inputs, [-1, 3, 64, 64])
+        output = tf.reshape(inputs, [-1, 4, 64, 64])
     
         lib.ops.conv2d.set_weights_stdev(0.02)
         lib.ops.deconv2d.set_weights_stdev(0.02)
         lib.ops.linear.set_weights_stdev(0.02)
     
-        output = lib.ops.conv2d.Conv2D('Discriminator.1', 3, dim, 5, output, stride=2)
+        output = lib.ops.conv2d.Conv2D('Discriminator.1', 4, dim, 5, output, stride=2)
         output = nonlinearity(output)
     
         output = lib.ops.conv2d.Conv2D('Discriminator.2', dim, 2*dim, 5, output, stride=2)
@@ -152,7 +159,12 @@ if __name__ == '__main__':
         
 
         real_data_conv = tf.placeholder(tf.int32, shape=[args.BATCH_SIZE, 3, 64, 64])
-        real_data = tf.reshape(2*((tf.cast(real_data_conv, tf.float32)/255.)-.5), [args.BATCH_SIZE, args.OUTPUT_DIM])
+        real_data = 2*((tf.cast(real_data_conv, tf.float32)/255.)-.5)
+        eigen = tf.placeholder(tf.float32, shape=[args.BATCH_SIZE,1])
+        eigen_tile = tf.tile(eigen[:,:,np.newaxis,np.newaxis],[1,1,64,64])
+        real_data = tf.concat([real_data,eigen_tile],1)
+        real_data = tf.reshape(real_data, [args.BATCH_SIZE, args.OUTPUT_DIM])
+
         
         fake_data = Generator(args.BATCH_SIZE)
         
@@ -201,12 +213,12 @@ if __name__ == '__main__':
             disc_cost += args.LAMBDA*gradient_penalty
         
             gen_train_op = tf.train.AdamOptimizer(
-                learning_rate=1e-4, 
+                learning_rate=1e-3, 
                 beta1=0.5,
                 beta2=0.9
             ).minimize(gen_cost, var_list=gen_params)
             disc_train_op = tf.train.AdamOptimizer(
-                learning_rate=1e-4, 
+                learning_rate=1e-3, 
                 beta1=0.5, 
                 beta2=0.9
             ).minimize(disc_cost, var_list=disc_params)
@@ -248,22 +260,25 @@ if __name__ == '__main__':
         fixed_noise_samples = Generator(args.BATCH_SIZE, noise=fixed_noise)          
         def generate_image(iteration):
             samples = session.run(fixed_noise_samples)
+            samples = samples.reshape((args.BATCH_SIZE, 4, 64, 64))
+            samples = samples[:,0:3,:,:]
             samples = ((samples+1.)*(255.99/2)).astype('int32')
             
-            lib.save_images.save_images(samples.reshape((args.BATCH_SIZE, 3, 64, 64)), args.model_dir +'/samples_{}.png'.format(iteration))
+            lib.save_images.save_images(samples, args.model_dir +'/samples_{}.png'.format(iteration))
         
         # Dataset iterator
-        train_gen = load_image.load(args.BATCH_SIZE, data_dir=args.DATA_DIR)
+        train_gen = load_image_eigen.load(args.BATCH_SIZE, data_dir=args.DATA_DIR)
         def inf_train_gen():
             while True:
-                for (images,) in train_gen():
-                    yield images
+                for (images,eigenvalues) in train_gen():
+                    yield images,eigenvalues
         
         # Save a batch of ground-truth samples
-        _x = inf_train_gen().__next__()
-        _x_r = session.run(real_data, feed_dict={real_data_conv: _x[:args.BATCH_SIZE]})
+        _x,_xeigen = inf_train_gen().__next__()
+       # print(_xeigen)
+        _x_r = session.run(real_data, feed_dict={real_data_conv: _x[:args.BATCH_SIZE],eigen:_xeigen})
         _x_r = ((_x_r+1.)*(255.99/2)).astype('int32')
-        lib.save_images.save_images(_x_r.reshape((args.BATCH_SIZE, 3, 64, 64)), 'samples_groundtruth.png')
+        lib.save_images.save_images(_x_r.reshape((args.BATCH_SIZE, 4, 64, 64))[:,0:3,:,:], 'samples_groundtruth.png')
         
         saver = tf.train.Saver()
         session.run(tf.initialize_all_variables())
@@ -299,10 +314,10 @@ if __name__ == '__main__':
             else:
                 disc_iters = args.CRITIC_ITERS
             for i in range(disc_iters):
-                _data = gen.__next__()
+                _data,_eigen = gen.__next__()
                 _disc_cost, _ = session.run(
                     [disc_cost, disc_train_op],
-                    feed_dict={real_data_conv:_data}
+                    feed_dict={real_data_conv:_data,eigen:_eigen}
                 )
                 if clip_disc_weights is not None:
                     _ = session.run(clip_disc_weights)
@@ -315,7 +330,13 @@ if __name__ == '__main__':
             if index % 10 == 9:
                 generate_image(index)
                 saver.save(session, args.model_dir + '/wgangp_' + str(index) + '.cptk')
-                #saver.save(session, 'wgangp_bionics' + '.cptk')
+               
+                samples = session.run(real_data,feed_dict={real_data_conv:_data,eigen:_eigen})
+                samples = samples.reshape((args.BATCH_SIZE, 4, 64, 64))
+                samples = samples[0,3,:,:]
+                print(samples)
+               
+               #saver.save(session, 'wgangp_bionics' + '.cptk')
             # Write logs every 100 iters
             if (index < 5) or (index % 10 == 9):
                 lib.plot.flush()
@@ -323,3 +344,4 @@ if __name__ == '__main__':
     
             lib.plot.tick()
             index = index + 1
+

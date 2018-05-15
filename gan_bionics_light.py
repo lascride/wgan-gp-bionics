@@ -27,6 +27,7 @@ import tflib.mnist
 import tflib.plot
 import argparse
 import load_image
+import load_image_eigen
 
 
 lib.print_model_settings(locals().copy())
@@ -249,76 +250,73 @@ if __name__ == '__main__':
                 output = tf.add(tf.matmul(fc1, w1), b1, name='output')
                 return tf.reshape(output, [-1])                  
             
-    real_data_conv = tf.placeholder(tf.int32, shape=[args.BATCH_SIZE, 3, args.DIM, args.DIM])
-    real_data = tf.reshape(2*((tf.cast(real_data_conv, tf.float32)/255.)-.5), [args.BATCH_SIZE, args.OUTPUT_DIM])
-    
-    fake_data = Generator(args.BATCH_SIZE)
-    
-    disc_real = Discriminator(real_data)
-    disc_fake = Discriminator(fake_data,reuse=True)
-    
-    gen_params = lib.params_with_name('Generator')
-    disc_params = lib.params_with_name('Discriminator')
-    
-    if args.MODE == 'wgan':
-        gen_cost = -tf.reduce_mean(disc_fake)
-        disc_cost = tf.reduce_mean(disc_fake) - tf.reduce_mean(disc_real)
-    
-        gen_train_op = tf.train.RMSPropOptimizer(
-            learning_rate=5e-5
-        ).minimize(gen_cost, var_list=gen_params)
-        disc_train_op = tf.train.RMSPropOptimizer(
-            learning_rate=5e-5
-        ).minimize(disc_cost, var_list=disc_params)
-    
-        clip_ops = []
-        for var in lib.params_with_name('Discriminator'):
-            clip_bounds = [-.01, .01]
-            clip_ops.append(
-                tf.assign(
-                    var, 
-                    tf.clip_by_value(var, clip_bounds[0], clip_bounds[1])
-                )
-            )
-        clip_disc_weights = tf.group(*clip_ops)
-    
-    elif args.MODE == 'wgan-gp':
-        gen_cost = -tf.reduce_mean(disc_fake)
-        disc_cost = tf.reduce_mean(disc_fake) - tf.reduce_mean(disc_real)
-    
-        alpha = tf.random_uniform(
-            shape=[args.BATCH_SIZE,1], 
-            minval=0.,
-            maxval=1.
-        )
-        differences = fake_data - real_data
-        interpolates = real_data + (alpha*differences)
-        gradients = tf.gradients(Discriminator(interpolates,reuse=True), [interpolates])[0]
-        slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients), reduction_indices=[1]))
-        gradient_penalty = tf.reduce_mean((slopes-1.)**2)
-        disc_cost += args.LAMBDA*gradient_penalty
-    
-        t_vars = tf.trainable_variables()
-        d_vars = [var for var in t_vars if 'dis' in var.name]
-        g_vars = [var for var in t_vars if 'gen' in var.name]
-        disc_train_op = tf.train.AdamOptimizer(learning_rate=0.0001, beta1=0.5, beta2=0.9).minimize(disc_cost, var_list=d_vars)
-        gen_train_op = tf.train.AdamOptimizer(learning_rate=0.0001, beta1=0.5, beta2=0.9).minimize(gen_cost, var_list=g_vars)
 
-    
-        clip_disc_weights = None    
         
-    train_gen = load_image.load(args.BATCH_SIZE, data_dir=args.DATA_DIR, dim=args.DIM,num=args.img_num,count=args.restore_index)
-    def inf_train_gen():
-        while True:
-            for (images,) in train_gen():
-                yield images  
+
                 
 
-    gen = inf_train_gen()
+
     # Train loop
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as session:
         
+        real_data_conv = tf.placeholder(tf.int32, shape=[args.BATCH_SIZE, 3, args.DIM, args.DIM])
+        real_data = tf.reshape(2*((tf.cast(real_data_conv, tf.float32)/255.)-.5), [args.BATCH_SIZE, args.OUTPUT_DIM])
+        eigen = tf.placeholder(tf.float32, shape=[args.BATCH_SIZE,1])
         
+        fake_data = Generator(args.BATCH_SIZE)
+        
+        disc_real = Discriminator(real_data)
+        disc_fake = Discriminator(fake_data,reuse=True)
+        
+        gen_params = lib.params_with_name('Generator')
+        disc_params = lib.params_with_name('Discriminator')
+        
+        if args.MODE == 'wgan':
+            gen_cost = -tf.reduce_mean(disc_fake)
+            disc_cost = tf.reduce_mean(disc_fake) - tf.reduce_mean(disc_real)
+        
+            gen_train_op = tf.train.RMSPropOptimizer(
+                learning_rate=5e-5
+            ).minimize(gen_cost, var_list=gen_params)
+            disc_train_op = tf.train.RMSPropOptimizer(
+                learning_rate=5e-5
+            ).minimize(disc_cost, var_list=disc_params)
+        
+            clip_ops = []
+            for var in lib.params_with_name('Discriminator'):
+                clip_bounds = [-.01, .01]
+                clip_ops.append(
+                    tf.assign(
+                        var, 
+                        tf.clip_by_value(var, clip_bounds[0], clip_bounds[1])
+                    )
+                )
+            clip_disc_weights = tf.group(*clip_ops)
+        
+        elif args.MODE == 'wgan-gp':
+            gen_cost = -tf.reduce_mean(disc_fake)
+            disc_cost = tf.reduce_mean(disc_fake) - tf.reduce_mean(disc_real)
+        
+            alpha = tf.random_uniform(
+                shape=[args.BATCH_SIZE,1], 
+                minval=0.,
+                maxval=1.
+            )
+            differences = fake_data - real_data
+            interpolates = real_data + (alpha*differences)
+            gradients = tf.gradients(Discriminator(interpolates,reuse=True), [interpolates])[0]
+            slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients), reduction_indices=[1]))
+            gradient_penalty = tf.reduce_mean((slopes-1.)**2)
+            disc_cost += args.LAMBDA*gradient_penalty
+        
+            t_vars = tf.trainable_variables()
+            d_vars = [var for var in t_vars if 'dis' in var.name]
+            g_vars = [var for var in t_vars if 'gen' in var.name]
+            disc_train_op = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.5, beta2=0.9).minimize(disc_cost, var_list=d_vars)
+            gen_train_op = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.5, beta2=0.9).minimize(gen_cost, var_list=g_vars)
+    
+        
+            clip_disc_weights = None            
 
 
         
@@ -338,9 +336,18 @@ if __name__ == '__main__':
         
         # Dataset iterator
 
-
+        train_gen = load_image_eigen.load(args.BATCH_SIZE, data_dir=args.DATA_DIR, dim=args.DIM,num=args.img_num,count=args.restore_index)
+        def inf_train_gen():
+            while True:
+                for (images,eigenvalues) in train_gen():
+                    yield images,eigenvalues  
         
-
+        # Save a batch of ground-truth samples
+        _x = inf_train_gen().__next__()
+        _x_r = session.run(real_data, feed_dict={real_data_conv: _x[:args.BATCH_SIZE]})
+        _x_r = ((_x_r+1.)*(255.99/2)).astype('int32')
+        lib.save_images.save_images(_x_r.reshape((args.BATCH_SIZE, 3, 64, 64)), 'samples_groundtruth.png')
+        
         
         
         #train_gen, dev_gen, test_gen = lib.mnist.load(args.BATCH_SIZE, args.BATCH_SIZE)
@@ -348,7 +355,7 @@ if __name__ == '__main__':
         
         saver = tf.train.Saver(max_to_keep=40)
         session.run(tf.initialize_all_variables())
-        index = 1
+        index = 0
         if args.restore_index:
             saver.restore(session,args.model_dir+"/wgangp_"+str(args.restore_index)+".cptk")
             index = args.restore_index + 1
@@ -366,7 +373,7 @@ if __name__ == '__main__':
         print('haha')
         print(get_num_params())
 
-
+        gen = inf_train_gen()
  
         for iteration in range(args.ITERS):
             start_time = time.time()
@@ -380,10 +387,10 @@ if __name__ == '__main__':
             else:
                 disc_iters = args.CRITIC_ITERS
             for i in range(disc_iters):
-                _data = gen.__next__()
+                _data,_eigen = gen.__next__()
                 _disc_cost, _ = session.run(
                     [disc_cost, disc_train_op],
-                    feed_dict={real_data_conv:_data}
+                    feed_dict={real_data_conv:_data, eigen:_eigen}
                 )
                 if clip_disc_weights is not None:
                     _ = session.run(clip_disc_weights)
