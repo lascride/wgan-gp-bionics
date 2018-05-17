@@ -1,11 +1,7 @@
 
 \chapter{Structural Bionic Design}
 
-\newtheorem{thm}{定理}[section]
 
-\newtheorem{lem}{引理}[section]
-
-\newtheorem{cor}{推论}[section]
 
 \section{Biological Micro structure and Lightweight Design}
 
@@ -13,14 +9,37 @@ Engineering design usually need to reach a balance between weight, material cons
 \begin{itemize}
 \item Timbers：Timbers hold excellent solidity and stiffness per unit mass, which results from timbers’ multilayer composite structure. Spiraling biological fibers, honeycomb or foam-like cellular cores, as well as other cellular structures form porous micro structures in timbers. As a result, the biological materials are saved, stiffness and solidity are enhanced. Timbers serve as important inspiration for lightweight design.
 
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\textwidth]{timber}
+	\figcaption{Hierarchical structure of spruce wood. Nature’s hierarchical materials}
+	\label{fig:1}
+\end{figure}
+
 \item Bones: Bones are critical biological parts that support creatures. Basically, they should possess good properties such as high load-carrying efficiency and less mass. Their form, shape and size have been optimized to meet these demands during evolution. Collagen proteins and mineralized wafers are cross-linked in bones, resulting in multilayer fissure structures. These fissures can conduct strains and dissipate energy efficiently. Also, anisotropy is produced to meet different mechanical requirements at different parts of creature.
 
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\textwidth]{bones}
+	\figcaption{Trabecular architecture in the mid-frontal section of the proximal femur. Nature’s hierarchical materials}
+	\label{fig:2}
+\end{figure}
+
 \item Carapaces: Carapaces of crabs and lobsters are another set of biological structures widely studied. Their carapaces possess excellent ability to prevent creatures from intense pressure and collision. This ability results from the multilayer structure and three-dimensional porous structure in the micrometer scale. Carapaces inspire many studies in designing lamination materials.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\textwidth]{lobster}
+	\figcaption{Microstructure of lobster cuticle. Inﬂuence of Structural Principles on the Mechan ics of a Biologica l Fibe r-Based Composite Material with
+		Hierarchical Organization: The Exoskeleto n of the
+		Lobster Homarus americanus}
+	\label{fig:3}
+\end{figure}
 
 \item Plankton: Plankton such as diatom and radiolarian need to defense themselves form predators’ attack. Secondly, in order to receive sufficient sun light, they have to float in shallow water. The adversarial optimization has designed hulls and exoskeleton with very light weight without affecting their outstanding mechanical. \\
 \end{itemize}
 
-Several main features can be summarized from the biological structures above:\\
+Several main features can be summarized from the biological structures above:
 \begin{itemize}
 \item The raw materials used in creature's biological structures are simple. Most of the biological structures achieve outstanding mechanical performance with single materials. Their delicately designed topological structures are the key of lightweight design.
 
@@ -35,15 +54,23 @@ Additive Manufacturing is a fast manufacturing technique. It use metal powders a
 
 Additive Manufacturing’s geometrical freedom of design makes structures even as complex as those in creatures possible to produce. Moreover, contrast to conventional manufacturing, Additive Manufacturing serves as an ideal technology for rapid prototyping and rapid manufacturing. All of these benefits makes AM a perfect method in structural bionics, and have been applied to biomimic varied structures.
 
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\textwidth]{AMM}
+	\figcaption{Process of Additive Manufacturing by powder bed fusion. Design for Additive Manufacturing – Supporting the Substitution of 
+		Components in Series Products}
+	\label{fig:4}
+\end{figure}
 
 \section{Current Structural Bionic Design Methods}
 Although a lot of papers have explored structural bionics with Additive Manufacturing, the abstraction of complex biological lightweight structure into a producible component is still a significant and fundamental step in the transfer of design principles from nature to technique lightweight solutions. Currently the procedures of structural bionics commonly have three steps:\\
+\begin{enumerate}
+\item Look for suitable creatures to mimic with respect to mechanical goals and collect samples.
 
-Step 1. Look for suitable creatures to mimic with respect to mechanical goals and collect samples.
+\item Analyze biological structure with mechanical and biological knowledge, then abstract the structures and design products.
 
-Step 2. Analyze biological structure with mechanical and biological knowledge, then abstract the structures and design products.
-
-Step 3. Manufacture the products, and test their mechanical performance. According to the feedback, make topological optimization or redesign the products until meeting requirements.\\
+\item Manufacture the products, and test their mechanical performance. According to the feedback, make topological optimization or redesign the products until meeting requirements.\\
+\end{enumerate}
 
 The major obstacles of currently procedure of abstraction are the particular geometry of various biological structure. Actually, the abstraction of biological lightweight structure remains to be an arbitrary component. That is to say, the abstraction results critically depend on the expert who execute the abstraction. The disadvantages of this method are obvious:\\
 
@@ -56,14 +83,15 @@ Thirdly, although people even can invite the best expert to execute the abstract
 Fourthly, micro biological structures like porous structures have latent but important connection to their shape and exterior. However, human experts are hard to capture this relationship. So in order to guarantee mechanical performance, the shape of structural bionics are usually fixed, bringing constrains on product design. How to adjust the shape of abstraction naturally, i.e. without affecting the coordination between exterior and interior’s micro structures remain unsolved.\\
 
 In order to solve all the obstacles above, in this paper we propose a brand new design method that satisfies properties below: \\
+\begin{enumerate}
+\item Universality: we propose a universal procedure to execute structural bionics. There’s no need to transfer biomimicking experience anymore.
 
-1. Universality: we propose a universal procedure to execute structural bionics. There’s no need to transfer biomimicking experience anymore.
+\item Non-artifact: Our algorithms learn the features from biological samples automatically, getting rid of the reliance on huge amount of expertise. 
 
-2. Non-artifact: Our algorithms learn the features from biological samples automatically, getting rid of the reliance on huge amount of expertise. 
+\item Natural generating: Our method enables users to give constraints such as shape on output products, and automatically generate natural samples that combine biological structures with the constraints. 
 
-3. Natural generating: Our method enables users to give constraints such as shape on output products, and automatically generate natural samples that combine biological structures with the constraints. 
-
-4. Optimize during abstraction: Instead of making topological optimization after abstraction, we regard mechanical performance as constraints during abstraction.\\
+\item Optimize during abstraction: Instead of making topological optimization after abstraction, we regard mechanical performance as constraints during abstraction.\\
+\end{enumerate}
 
 In this paper, we propose a biomimicking procedure based on Generative Adversarial Networks (GAN). 
 

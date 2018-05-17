@@ -1,30 +1,38 @@
 \chapter{Approach and Model Architecture}
 
-\subsection{Prior Steps}
+\section{Prior Steps}
 In order to execute structural bionic design, we first need to obtain sufficient data about the chosen biological structure. Commonly used descriptions of biological structures include cross-section photos taken with camera (timbers), CT photos (bones), and etc. Surely, these photos should be taken skillful to eliminate irrelevant factors. If necessary, we also could carry out pre and post processing. In a word, after a skillful collecting and processing, finally we can get enough natural image data about our target biological structure.
 
-\subsection{Learning the Natural Manifold with GAN}
-If the image dataset has enough samples, we could expect it to fully reflect the biological structure. Let we assume that all biological structure images in our dataset are sampled from a distribution that lies on an ideal manifold $M_0$, with distance function that measures two images’ sensual similarity. Directly modeling this manifold is extremely difficult, since it is a complex-structured manifold in a million-dimensional space. 
+\section{Learning the Natural Manifold with GAN}
+If the image dataset has enough samples, we could expect it to fully reflect the biological structure. Let we assume that all biological structure images in our dataset are sampled from a distribution that lies on an ideal manifold $\mathbb{M}$, with distance function that measures two images’ sensual similarity. Directly modeling this manifold is extremely difficult, since it is a complex-structured manifold in a million-dimensional space. 
 
-Notice that by training GAN on a dataset with latent input of relatively low dimension (say 100), we can approximate $M_0$ by a low-dimensional manifold $M_1$. The latent input z then serves as a set of global coordinates of $M_1$. We can formally define $M_1 = {}$ and regard it as an approximation of $M_0$. Also, the distance function can be approximated by the Euclidean distance between latent vectors, i.e., 
+Notice that by training GAN on a dataset with latent input of relatively low dimension (say 100), we can approximate $\mathbb{M}$ by a low-dimensional manifold $\widetilde{\mathbb{M}}$. The latent input z then serves as a set of global coordinates of $\widetilde{\mathbb{M}}$. We can formally define $\widetilde{\mathbb{M}} = \{G(z)|z\in\mathbb{Z}\}$ and regard it as an approximation of $\mathbb{M}$. Also, the distance function can be approximated by the Euclidean distance between latent vectors, i.e., 
 
-GAN have been chosen to execute approximation because: 1. GANs, especially its variants such as DCGAN, WGAN have been observed to be able to generate high quality but brand new images similar to training set, so the manifold can be nicely approximated. 2. GAN network structures are differentiable, thus the Euclidean distance of latent vectors can be regard as distance functions.
+GAN have been chosen to execute approximation because: 
+\begin{itemize}
+\item GANs, especially its variants such as DCGAN, WGAN have been observed to be able to generate high quality but brand new images similar to training set, so the manifold can be nicely approximated. 
+\item GAN network structures are differentiable, thus the Euclidean distance of latent vectors can be regard as distance functions.
+\end{itemize}
+\section{Manipulating the Latent Vector}
+By now, we already have an approximate manifold $\widetilde{\mathbb{M}}$, and a global coordinate z. Then our goal is to manipulate the latent vector z to modify the image on $\widetilde{\mathbb{M}}$, so the generated image G(z) meets user’s requirements. We achieve this by updating z to match requirements.
 
-\subsection{Manipulating the Latent Vector}
-By now, we already have an approximate manifold $M_1$, and a global coordinate z. Then our goal is to manipulate the latent vector z to modify the image on $M_1$, so the generated image G(z) meets user’s requirements. We achieve this by updating z to match requirements.
+\subsection{Solving The Constraint Problem}
+Each of User's requirements is formulated as a constaint $f_g(x)=v_g$; where g denotes a type of constraint, $f_g$ maps a sample $x$ to a feature $f_g(x)$, and $v_g$ denotes the value of constraint user have set. And we define the constraint problem as follows:
+\begin{equation}
+\begin{aligned}
+z^* = \mathop{\arg\min}_{z \in \mathbb{Z}} \{\underbrace{\sum_{g}\|f_g(G(z))-v_g\|^2}_{data term} +\underbrace{\lambda_s\cdot\|z-z_0\|^2}_{manifold smoothness} +E_D\}
+\end{aligned}
+\end{equation}
 
-\subsubsection{Solving The Constraint Problem}
-Each of User’s requirements is formulated as a constaint $f_g(x)==v_g$; where g denotes a type of constraint, $f_g$ maps a sample x to a feature $f_g(x)$, and $v_g$ denotes the value of constraint user have set. And we define objective as follows:
+The constraint term measures the deviation from the constraint. The smoothness term force choosing new images $G(z)$ close to $G(z_0)$ on the manifold, since from a mathematical point of view, it’s hard to find a global coordinate description of manifold and instead we usually use a local chart. $E_D$ represent the visual realism of the generated output scored by the GAN Discriminator. This term forces the generated image close the $\widetilde{\mathbb{M}}$ and thus inherit biological structure. 
 
-The constraint term measures the deviation from the constraint. The smoothness term force choosing new images G(z) close to $G(z_0)$ on the manifold, since from a mathematical point of view, it’s hard to find a global coordinate description of manifold and instead we usually use a local chart. $E_D =…$ represent the visual realism of the generated output scored by the GAN Discriminator. This term forces the generated image close the $M_1$ and thus inherit biological structure. 
+Since the are manipulating the latent vector z to modify image on the approximate manifold $\widetilde{\mathbb{M}}$ to solve the constraint problem, the generated images are in fact chosen from $\widetilde{\mathbb{M}}$. So they naturally inherit the features of $\widetilde{\mathbb{M}}$, $\mathbb{M}$ and in turn the raw biological dataset. This means the generated images combine biological features with human design naturally. 
 
-Since the are manipulating the latent vector z to modify image on the approximate manifold $M_1$ to solve the constraint problem, the generated images are in fact chosen from $M_1$. So they naturally inherit the features of $M_1$, $M_0$ and in turn the raw biological dataset. This means the generated images combine biological features with human design naturally. 
+\subsection{Constraints and Their Formulations}
 
-\subsubsection{Constraints and Their Formulations}
+(1) Color: The dyeing of biological structure usually produce colors with gradual change based on the size and density of the micro structure. So colors can be used to guide and control the micro structure of products. For each pixel marked by user's requirement, we set the mapping f to be $f_{color}(I) = I_p$, the rgb vector at the pixel and let the constraint to be $f_{color}(I) = I_p=v_p$, forcing the selected pixel p to have value $v_p$.\
 
-(1) Color: The dyeing of biological structure usually produce colors with gradual change based on the size and density of the micro structure. So colors can be used to guide and control the micro structure of products. For each pixel marked by user’s requirement, we set the mapping f to be $f_color(I) = I_p$, the rgb vector at the pixel and let the constraint to be $f_color(I) = I_p=v_p$, forcing the selected pixel p to have value $v_p$.\
+(2) Shape: To meet diverse engineering demands, user would like to generate bionic structures in varied shapes. In our algorithm, shapes are also regarded as constraints. We use HOG feature which reflects gradient information to represent the shape of selected region. In this case, mapping f becomes a HOG feature extractor $f_{hog}$, i.e $f_{hog}(I)=HOG(I)_p$, the Hog feature at location p. We set $f_{hog}(I) = HOG(I)_p$ to be as close as possible to $v_g$, the HOG feature of user’s stroke.
 
-(2) Shape: To meet diverse engineering demands, user would like to generate bionic structures in varied shapes. In our algorithm, shapes are also regarded as constraints. We use HOG feature which reflects gradient information to represent the shape of selected region. In this case, mapping f becomes a HOG feature extractor $f_hog$, i.e $f_hog(I)=HOG(I)_p$, the Hog feature at location p. We set $f_hog(I) = HOG(I)_p$ to be as close as possible to $v_g$, the HOG feature of user’s stroke.
-
-\subsubsection{Gradient Decent Update}
+\subsection{Gradient Decent Update}
 Since the structure of manifold are complex, for most constraints the equation(5) is non-convex. We use gradient decent update to solve it. 
