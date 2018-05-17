@@ -98,20 +98,20 @@ if __name__ == '__main__':
                 b1 = tf.get_variable('b1', shape=[4*4*8*dim], dtype=tf.float32,
                                      initializer=tf.constant_initializer(0.0))
                 flat_conv1 = tf.add(tf.matmul(noise, w1), b1, name='flat_conv1')
-                # 4*4*1024
+                # 4*4*512
                 conv1 = tf.reshape(flat_conv1, shape=[-1, 4, 4, 8*dim], name='conv1')
                 act1 = tf.nn.relu(conv1, name='act1')
-                # 8*8*512
+                # 8*8*256
                 conv2 = tf.layers.conv2d_transpose(act1, 4*dim, kernel_size=[5, 5], strides=[2, 2], padding="SAME",
                                                    kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
                                                    name='conv2')
                 act2 = tf.nn.relu(conv2, name='act2')
-                # 16*16*256
+                # 16*16*128
                 conv3 = tf.layers.conv2d_transpose(act2, 2*dim, kernel_size=[5, 5], strides=[2, 2], padding="SAME",
                                                    kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
                                                    name='conv3')
                 act3 = tf.nn.relu(conv3, name='act3')
-                # 32*32*128
+                # 32*32*64
                 conv4 = tf.layers.conv2d_transpose(act3, dim, kernel_size=[5, 5], strides=[2, 2], padding="SAME",
                                                    kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
                                                    name='conv4')
@@ -174,23 +174,24 @@ if __name__ == '__main__':
             with tf.variable_scope('dis') as scope:
                 if reuse:
                     scope.reuse_variables()
-                # 16*16*32
+                # 64643
                 inputs = tf.reshape(inputs, [-1, args.DIM, args.DIM, 3])    
+                # 323264
                 conv1 = tf.layers.conv2d(inputs, dim, kernel_size=[5, 5], strides=[2, 2], padding="SAME",
                                          kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
                                          name='conv1')
                 act1 = LeakyReLU(conv1, n='act1')
-                # 8*8*64
+                # 1616128
                 conv2 = tf.layers.conv2d(act1, 2*dim, kernel_size=[5, 5], strides=[2, 2], padding="SAME",
                                          kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
                                          name='conv2')
                 act2 = LeakyReLU(conv2, n='act2')
-                # 4*4*128
+                # 88256
                 conv3 = tf.layers.conv2d(act2, 4*dim, kernel_size=[5, 5], strides=[2, 2], padding="SAME",
                                          kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
                                          name='conv3')
                 act3 = LeakyReLU(conv3, n='act3')
-                
+                #44512
                 conv4 = tf.layers.conv2d(act3, 8*dim, kernel_size=[5, 5], strides=[2, 2], padding="SAME",
                                          kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
                                          name='conv4')

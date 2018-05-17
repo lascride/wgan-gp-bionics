@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 """
+Created on Wed May 16 22:46:32 2018
+
+@author: lenovo
+"""
+
+# -*- coding: utf-8 -*-
+"""
 Created on Wed May 16 04:33:16 2018
 
 @author: lenovo
@@ -42,7 +49,7 @@ def parse_args():
     parser.add_argument('--CRITIC_ITERS', dest='CRITIC_ITERS', help='For WGAN and WGAN-GP, number of critic iters per gen iter',type=int, default=5)
     parser.add_argument('--LAMBDA', dest='LAMBDA', help='Gradient penalty lambda hyperparameter',type=int, default=10)
     parser.add_argument('--ITERS', dest='ITERS', help='How many generator iterations to train for',type=int, default=200000)
-    parser.add_argument('--OUTPUT_DIM', dest='OUTPUT_DIM', help='Number of pixels in MNIST (28*28)',type=int, default=64*64*4)
+    parser.add_argument('--OUTPUT_DIM', dest='OUTPUT_DIM', help='Number of pixels in MNIST (28*28)',type=int, default=64*64*3)
     parser.add_argument('--output_lenth', dest='output_lenth', help='lenth of the output images',type=int, default=64)
     parser.add_argument('--img_num', dest='img_num', help='the number of the output images', type=int, default=4096)
     parser.add_argument('--model_dir', dest='model_dir', type=str, default='models',
@@ -110,24 +117,63 @@ if __name__ == '__main__':
     
         output = nonlinearity(output)
     
-        output = lib.ops.deconv2d.Deconv2D('Generator.5', dim, 4, 5, output)
-        output = tf.tanh(output)
+        output = lib.ops.deconv2d.Deconv2D('Generator.5', dim, 3, 5, output)
+        
+        output_image = tf.tanh(output)#128*3*64*64
+        
+  
+        lib.ops.conv2d.unset_weights_stdev()
+        lib.ops.deconv2d.unset_weights_stdev()
+        lib.ops.linear.unset_weights_stdev()
+    
+        return output_image
+
+
+    def Eigener(inputs, dim=args.DIM, bn=True, nonlinearity=LeakyReLU):
+        lib.ops.conv2d.set_weights_stdev(0.02)
+        lib.ops.deconv2d.set_weights_stdev(0.02)
+        lib.ops.linear.set_weights_stdev(0.02)
+     
+        
+        output = lib.ops.conv2d.Conv2D('Encoder.1', 3, dim, 5, inputs, stride=2)
+        output = nonlinearity(output)
+    
+        output = lib.ops.conv2d.Conv2D('Encoder.2', dim, 2*dim, 5, output, stride=2)
+    
+        output = nonlinearity(output)
+    
+        output = lib.ops.conv2d.Conv2D('Encoder.3', 2*dim, 4*dim, 5, output, stride=2)
+    
+        output = nonlinearity(output)
+    
+        output = lib.ops.conv2d.Conv2D('Encoder.4', 4*dim, 8*dim, 5, output, stride=2)
+    
+        output = nonlinearity(output)
+    
+        output = tf.reshape(output, [-1, 4*4*8*dim])
+        output = lib.ops.linear.Linear('Encoder.Output', 4*4*8*dim, 1, output) 
+        
+        eigen = tf.tanh(output)#128*1
+        
+
+        
     
         lib.ops.conv2d.unset_weights_stdev()
         lib.ops.deconv2d.unset_weights_stdev()
         lib.ops.linear.unset_weights_stdev()
     
-        return tf.reshape(output, [-1, args.OUTPUT_DIM])
+        return eigen
+
     
     
     def Discriminator(inputs, dim=args.DIM, bn=True, nonlinearity=LeakyReLU):
-        output = tf.reshape(inputs, [-1, 4, 64, 64])
+        output = tf.reshape(inputs, [-1, 3, 64, 64])
     
         lib.ops.conv2d.set_weights_stdev(0.02)
         lib.ops.deconv2d.set_weights_stdev(0.02)
         lib.ops.linear.set_weights_stdev(0.02)
     
-        output = lib.ops.conv2d.Conv2D('Discriminator.1', 4, dim, 5, output, stride=2)
+        output = lib.ops.conv2d.Conv2D('Discriminator.1', 3, dim, 5, output, stride=2)
         output = nonlinearity(output)
     
         output = lib.ops.conv2d.Conv2D('Discriminator.2', dim, 2*dim, 5, output, stride=2)
@@ -160,16 +206,34 @@ if __name__ == '__main__':
 
         real_data_conv = tf.placeholder(tf.int32, shape=[args.BATCH_SIZE, 3, 64, 64])
         real_data = 2*((tf.cast(real_data_conv, tf.float32)/255.)-.5)
-        eigen = tf.placeholder(tf.float32, shape=[args.BATCH_SIZE,1])
-        eigen_tile = tf.tile(eigen[:,:,np.newaxis,np.newaxis],[1,1,64,64])
-        real_data = tf.concat([real_data,eigen_tile],1)
-        real_data = tf.reshape(real_data, [args.BATCH_SIZE, args.OUTPUT_DIM])
+        
+        true_eigen = tf.placeholder(tf.float32, shape=[args.BATCH_SIZE,1])
+        true_eigen_tile = tf.tile(true_eigen[:,:,np.newaxis,np.newaxis],[1,3,64,64])
+        
+        real_data_trans = tf.add(real_data,0.25*true_eigen_tile)
+        real_data_trans = tf.reshape(real_data_trans, [args.BATCH_SIZE, args.OUTPUT_DIM])
 
         
         fake_data = Generator(args.BATCH_SIZE)
         
-        disc_real = Discriminator(real_data)
-        disc_fake = Discriminator(fake_data)
+        fake_eigen = Eigener(fake_data)
+        fake_eigen_tile = tf.tile(fake_eigen[:,:,np.newaxis,np.newaxis],[1,3,64,64])#128*3*64*64        
+        
+        fake_data_trans = tf.add(0.25*fake_eigen_tile,fake_data)        
+        fake_data_trans = tf.reshape(fake_data_trans, [-1, args.OUTPUT_DIM])
+        
+        alter_eigen = Eigener(real_data)
+        alter_eigen_tile = tf.tile(alter_eigen[:,:,np.newaxis,np.newaxis],[1,3,64,64])#128*3*64*64                
+                
+        real_data_trans_alter = tf.add(real_data,0.25*alter_eigen_tile)
+        real_data_trans_alter = tf.reshape(real_data_trans_alter, [-1, args.OUTPUT_DIM])
+        
+        
+        
+        
+        disc_real = Discriminator(real_data_trans)
+        
+        disc_fake = 0.8*Discriminator(fake_data_trans) + 0.2*Discriminator(real_data_trans_alter)
         
         gen_params = lib.params_with_name('Generator')
         disc_params = lib.params_with_name('Discriminator')
@@ -205,8 +269,8 @@ if __name__ == '__main__':
                 minval=0.,
                 maxval=1.
             )
-            differences = fake_data - real_data
-            interpolates = real_data + (alpha*differences)
+            differences = fake_data_trans - real_data_trans
+            interpolates = real_data_trans + (alpha*differences)
             gradients = tf.gradients(Discriminator(interpolates), [interpolates])[0]
             slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients), reduction_indices=[1]))
             gradient_penalty = tf.reduce_mean((slopes-1.)**2)
@@ -257,11 +321,9 @@ if __name__ == '__main__':
         
         # For saving samples
         fixed_noise = tf.random_uniform([args.BATCH_SIZE, 128], minval=-1.0, maxval=1.0, dtype=tf.float32, seed=1, name=None)
-        fixed_noise_samples = Generator(args.BATCH_SIZE, noise=fixed_noise)          
+        fixed_noise_samples= Generator(args.BATCH_SIZE, noise=fixed_noise)          
         def generate_image(iteration):
             samples = session.run(fixed_noise_samples)
-            samples = samples.reshape((args.BATCH_SIZE, 4, 64, 64))
-            samples = samples[:,0:3,:,:]
             samples = ((samples+1.)*(255.99/2)).astype('int32')
             
             lib.save_images.save_images(samples, args.model_dir +'/samples_{}.png'.format(iteration))
@@ -276,11 +338,11 @@ if __name__ == '__main__':
         # Save a batch of ground-truth samples
         _x,_xeigen = inf_train_gen().__next__()
        # print(_xeigen)
-        _x_r = session.run(real_data, feed_dict={real_data_conv: _x[:args.BATCH_SIZE],eigen:_xeigen})
+        _x_r = session.run(real_data, feed_dict={real_data_conv: _x[:args.BATCH_SIZE]})
         _x_r = ((_x_r+1.)*(255.99/2)).astype('int32')
-        lib.save_images.save_images(_x_r.reshape((args.BATCH_SIZE, 4, 64, 64))[:,0:3,:,:], 'samples_groundtruth.png')
+        lib.save_images.save_images(_x_r, 'samples_groundtruth.png')
         
-        saver = tf.train.Saver()
+        saver = tf.train.Saver(max_to_keep=80)
         session.run(tf.initialize_all_variables())
         index = 0
         if args.restore_index:
@@ -291,17 +353,7 @@ if __name__ == '__main__':
         
 
         if args.infer=='True':
-            samples = session.run(fixed_noise_samples)
-            samples = samples.reshape((args.BATCH_SIZE, 4, 64, 64))
-            eigens = samples[:,3,:,:]
-            print(np.mean(samples[:,3,:,:],axis=(1,2)))
-            lib.save_images.save_images(eigens, args.model_dir +'/eigens_{}.png'.format(index))
 
-            samples = samples[:,0:3,:,:]
-            samples = ((samples+1.)*(255.99/2)).astype('int32')
-            np.savetxt(args.model_dir+'/eigen.txt',eigens)
-            lib.save_images.save_images(samples, args.model_dir +'/samples_{}.png'.format(index))
-            lib.save_images.save_images_discrete(samples, args.model_dir)
             print('stop')
             sys.exit()
             
@@ -327,7 +379,7 @@ if __name__ == '__main__':
                 _data,_eigen = gen.__next__()
                 _disc_cost, _ = session.run(
                     [disc_cost, disc_train_op],
-                    feed_dict={real_data_conv:_data,eigen:_eigen}
+                    feed_dict={real_data_conv:_data,true_eigen:_eigen}
                 )
                 if clip_disc_weights is not None:
                     _ = session.run(clip_disc_weights)
@@ -341,14 +393,7 @@ if __name__ == '__main__':
                 generate_image(index)
                 saver.save(session, args.model_dir + '/wgangp_' + str(index) + '.cptk')
                
-                samples = session.run(real_data,feed_dict={real_data_conv:_data,eigen:_eigen})
-                samples = samples.reshape((args.BATCH_SIZE, 4, 64, 64))
-                samples = samples[0,3,:,:]
-                print(samples)
-                samples_fake = session.run(fixed_noise_samples)
-                samples_fake = samples_fake.reshape((args.BATCH_SIZE, 4, 64, 64))
-                samples_fake = samples_fake[0,3,:,:]                
-                print(samples_fake)
+
                
                #saver.save(session, 'wgangp_bionics' + '.cptk')
             # Write logs every 100 iters

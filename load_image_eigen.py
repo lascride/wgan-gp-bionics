@@ -18,6 +18,10 @@ def make_generator(path, n_files, batch_size, dim=64, count=None):
 
     def get_epoch():
         eigenvaluecsv=pd.read_csv(path+'/eigenvalue.csv',header=None,sep=',')
+        eigen_max = eigenvaluecsv[1].max()
+        eigen_min = eigenvaluecsv[1].min()
+        eigenvaluecsv[1] = (eigenvaluecsv[1] - eigen_min)/(eigen_max - eigen_min)
+        eigenvaluecsv[1] = 2*(eigenvaluecsv[1] - 0.5)
         images = np.zeros((batch_size, 3, dim, dim), dtype='int32')
         eigenvalues = np.zeros((batch_size, 1), dtype='float32')
         files = list(range(n_files))
