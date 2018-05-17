@@ -14,25 +14,32 @@ GAN have been chosen to execute approximation because:
 \item GAN network structures are differentiable, thus the Euclidean distance of latent vectors can be regard as distance functions.
 \end{itemize}
 \section{Manipulating the Latent Vector}
-By now, we already have an approximate manifold $\widetilde{\mathbb{M}}$, and a global coordinate z. Then our goal is to manipulate the latent vector z to modify the image on $\widetilde{\mathbb{M}}$, so the generated image G(z) meets user’s requirements. We achieve this by updating z to match requirements.
+By now, we already have an approximate manifold $\widetilde{\mathbb{M}}$, and a global coordinate z. Then our goal is to manipulate the latent vector z to modify the image on $\widetilde{\mathbb{M}}$, so the generated image G(z) meets user’s requirements. We achieve this by updating z to meet requirements.
 
-\subsection{Solving The Constraint Problem}
-Each of User's requirements is formulated as a constaint $f_g(x)=v_g$; where g denotes a type of constraint, $f_g$ maps a sample $x$ to a feature $f_g(x)$, and $v_g$ denotes the value of constraint user have set. And we define the constraint problem as follows:
+\subsection{Solving Constraint Problem}
+Each of User's requirements is formulated as a constaint $f_g(x)=v_g$, where g denotes a type of constraint, $f_g$ maps a sample $x$ to a feature $f_g(x)$, and $v_g$ denotes the value of constraint user has set. Then we define the constraint problem as follows:
 \begin{equation}
 \begin{aligned}
-z^* = \mathop{\arg\min}_{z \in \mathbb{Z}} \{\underbrace{\sum_{g}\|f_g(G(z))-v_g\|^2}_{data term} +\underbrace{\lambda_s\cdot\|z-z_0\|^2}_{manifold smoothness} +E_D\}
+z^* = \mathop{\arg\min}_{z \in \mathbb{Z}} \{\underbrace{\sum_{g}\|f_g(G(z))-v_g\|^2}_{constraint\ term} +\underbrace{\lambda_s\cdot\|z-z_0\|^2}_{manifold\ smoothness} + \underbrace{E_D + S_e}_{mechanics\ term} \}
 \end{aligned}
 \end{equation}
+\begin{itemize}
+\item The constraint term measures the deviation from the constraint. This term force the generated image to meet user's preference such as color and shape. In structual bionic design, color constraints can indicate the density of micro strutures and shape constraints force GAN to generate structures needed in various situation. This loss is defined for flexible design.
 
-The constraint term measures the deviation from the constraint. The smoothness term force choosing new images $G(z)$ close to $G(z_0)$ on the manifold, since from a mathematical point of view, it’s hard to find a global coordinate description of manifold and instead we usually use a local chart. $E_D$ represent the visual realism of the generated output scored by the GAN Discriminator. This term forces the generated image close the $\widetilde{\mathbb{M}}$ and thus inherit biological structure. 
+\item The smoothness term force choosing new images $G(z)$ close to $G(z_0)$ on the manifold. From the mathematical point of view, manifolds are only locally Euclidean and we use local charts to describe them. It's hard to find a global coordinate system of manifold. So we restrict latent vector $z$ to the neighborhood of its origin location. 
 
-Since the are manipulating the latent vector z to modify image on the approximate manifold $\widetilde{\mathbb{M}}$ to solve the constraint problem, the generated images are in fact chosen from $\widetilde{\mathbb{M}}$. So they naturally inherit the features of $\widetilde{\mathbb{M}}$, $\mathbb{M}$ and in turn the raw biological dataset. This means the generated images combine biological features with human design naturally. 
+\item The realism loss $E_D$ reflect visual realism of the generated image judged by the GAN Discriminator. Geometrically, this term forces the generated image close to approximate manifold $\widetilde{\mathbb{M}}$ so as to possess the same distribution as real samples. From a bionic perspetive, this loss guarantee generated structure inherit biological features to achieve biomimicking.  
 
-\subsection{Constraints and Their Formulations}
+\item $S_{e}$ represents stiffness loss, which is minus minimal eigenvalue of the stiffness matrix of the generated structure. Note that when the external force is isotropical (which is common in nature), the minimum eigenvalue of the stiffness matrix significantly affect the loading capacity of the structure.
+\end{itemize}
 
-(1) Color: The dyeing of biological structure usually produce colors with gradual change based on the size and density of the micro structure. So colors can be used to guide and control the micro structure of products. For each pixel marked by user's requirement, we set the mapping f to be $f_{color}(I) = I_p$, the rgb vector at the pixel and let the constraint to be $f_{color}(I) = I_p=v_p$, forcing the selected pixel p to have value $v_p$.\
+Since we are just manipulating the latent vector z to modify image on the approximate manifold $\widetilde{\mathbb{M}}$ to solve the constraint problem, the generated images are in fact chosen from $\widetilde{\mathbb{M}}$. So they naturally inherit the features of $\widetilde{\mathbb{M}}$, and in turn $\mathbb{M}$ if GANs have enough learning ability. This means the generated images combine biological features with human design naturally, which is of vital importance in biomimicking. 
 
-(2) Shape: To meet diverse engineering demands, user would like to generate bionic structures in varied shapes. In our algorithm, shapes are also regarded as constraints. We use HOG feature which reflects gradient information to represent the shape of selected region. In this case, mapping f becomes a HOG feature extractor $f_{hog}$, i.e $f_{hog}(I)=HOG(I)_p$, the Hog feature at location p. We set $f_{hog}(I) = HOG(I)_p$ to be as close as possible to $v_g$, the HOG feature of user’s stroke.
+\subsection{Constraints' Formulations}
+\begin{itemize}
+\item Color: The dyeing of biological structure usually produce colors with gradual change based on the size and density of the micro structure. So colors can be used to guide and control the micro structure of products. For each pixel marked by user's requirement, we set the mapping f to be $f_{color}(I) = I_p$, the rgb vector at the pixel and let the constraint to be $f_{color}(I) = I_p=v_p$, forcing the selected pixel p to have value $v_p$.\
 
+\item Shape: To meet diverse engineering demands, user would like to generate bionic structures in varied shapes. In our algorithm, shapes are also regarded as constraints. We use HOG feature which reflects gradient information to represent the shape of selected region. In this case, mapping f becomes a HOG feature extractor $f_{hog}$, i.e $f_{hog}(I)=HOG(I)_p$, the Hog feature at location p. We set $f_{hog}(I) = HOG(I)_p$ to be as close as possible to $v_g$, the HOG feature of user’s stroke.
+\end{itemize}
 \subsection{Gradient Decent Update}
-Since the structure of manifold are complex, for most constraints the equation(5) is non-convex. We use gradient decent update to solve it. 
+Since the structure of manifold are complex, for most constraints the equation (3.1) is non-convex. We use gradient decent update to solve it. 

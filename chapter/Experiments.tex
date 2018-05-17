@@ -1,10 +1,10 @@
 \chapter{Experiments}
 
-\subsection{Datasets}
-Since our bionic design method is pioneering, nobody has collected enough number of high quality images about biological micro structures. Useful datasets are very limited on the Internet. We have to apply data augmentation on limited images to prove the empirical validation of our methods.
+\section{Datasets}
+Since our bionic design method is somehow pioneering, few people has collected enough number of high quality images about biological micro structures. Useful datasets are very limited on the Internet. We have to apply data augmentation on limited images to prove the empirical validation of our methods.
 
-\subsubsection{Bamboo Cross-section Images}
-The primary image is a bamboo cross-section image shown in $**$. We randomly crop 64*64 patches on the primary image and apply rotation and flipping operations to generate new images with different angles. The resulting dataset consist of 24576 RGB images of size 64*64. The patches are shown in **.
+\subsection{Bamboo Cross-section Images}
+The primary image is a bamboo cross-section image shown in figure (4.1). We randomly crop 64*64 patches on the primary image then apply rotation and flipping operations to generate new images with different angles. The resulting dataset consist of 24576 three-channel images of size $64\times64$. The patches are shown in figure (4.2).
 \begin{figure}
 	\centering
 	\includegraphics[width=0.7\textwidth]{bamboo}
@@ -15,24 +15,96 @@ The primary image is a bamboo cross-section image shown in $**$. We randomly cro
 	\centering
 	\includegraphics[width=1\textwidth]{bamboo128}
 	\figcaption{Bamboo image patches.}
-	\label{fig:10}
+	\label{fig:11}
 \end{figure}
-\subsubsection{Midrib Images}
-The primary images are three images of Symplocos mosenii from MidribDataset. We also randomly crop 64*64 patches and apply rotation and flipping operations, but since we would like to focus on the specific biological structure of the edge of the midrib, we’ve wiped off a large portion of images that fail to contain the edge. 
+\subsection{Midrib Images}
+The primary images are three images of Symplocos mosenii from MidribDataset. We also randomly crop $64\times64$ patches and apply rotation and flipping operations, but since we would like to focus on the specific biological structure of the edge of the midrib, we’ve wiped off a large portion of images that fail to contain the edge. 
+\begin{figure}
+	\centering
+	\includegraphics[width=1\textwidth]{sym}
+	\figcaption{Midrib image patches.}
+	\label{fig:12}
+\end{figure}
+\section{Details of Adversarial Training}
 
-\subsection{Details of Adversarial Training}
+\subsection{Network Structure and GAN method}
+Since the dataset consist of images, we would like to include convolution layers to capture biological features of micro structures. We follow similar network design principle with DCGAN.
 
-\subsubsection{Network Structure and GAN method}
-Since the dataset consist of images, we would like to include convolution layers to capture biological features of micro structures. We follow the same network design principle with DCGAN.
+However, since our dataset are generated from several primary images, the quality of the dataset cannot match those used in DCGAN paper. In fact, directly applying DCGAN on our dataset may cause mode collapse, i.e. when varying latent vector z, the output remains unchanged.(see figure 4.4). Thus, we combine DCGAN's network structure with loss functions of WGAN.
+\begin{figure}
+	\centering
+	\includegraphics[width=1\textwidth]{modedc}
+	\figcaption{DCGAN meets mode collapse with our dataset.}
+	\label{fig:13}
+\end{figure}
+In Generator, a 128 dimensional uniform distribution is projected to a convolutional representation with a large number of feature maps. Then a series of four fractionally-stride convolutions are executed to map these feature maps to a $64\times64$ three-channel image. Every convolution is followed by a relu function as activation function to increase nonlinearity. In the end, we use a $\tanh$ function to scale the image into a color space between [-1,1]. Since we would like to use loss functions of WGAN, there is no need to add batch normalization.
+\begin{figure}
+	\centering
+	\includegraphics[width=1\textwidth]{gen}
+	\figcaption{Generator network structure.}
+	\label{fig:14}
+\end{figure}
 
-However, since our dataset are generated from several primary images, the quality of the dataset cannot match those used in DCGAN paper. In fact, directly applying DCGAN on our dataset may cause mode collapse, i.e. when varying latent vector z, the output remains unchanged.(see figure**). Thus, we combine DCGAN's network structure with loss functions of WGAN.
+In Discriminator, the inputs are scaled to [-1,1], and then a series of four convolutional layers map the inputs into feature representations and finally we get a scalar. In WGAN framework, we don't need to use sigmoid function to transform this scalar into probability. Since the Discriminator loss serves as an approximation of EM-distance, the scalar represents an approximate measure between generative distribution and real sample distribution, indicating the realism of the image.
 
-In Generator, a 128 dimensional uniform distribution is projected to a convolutional representation with a large number of feature maps. Then a series of four fractionally-stride convolutions are executed to map these feature maps to a 64*64 3-channel image. Every convolution is followed by a relu function as activation function to increase nonlinearity. In the end, we use a tanh function to scale the image into a color space between [-1,1]. Since we would like to use loss functions of WGAN, there is no need to add batch normalization.
+\begin{figure}
+	\centering
+	\includegraphics[width=1\textwidth]{disc}
+	\figcaption{Discriminator network structure.}
+	\label{fig:14}
+\end{figure}
 
-In Discriminator, the inputs are scaled to [-1,1], and then a series of four convolutional layers map the inputs into feature representations and finally we get a scalar. In WGAN framework, we don’t need to use sigmoid function to transform this scalar into probability. Since the Discriminator serves as an approximation of EM-distance, the scalar represents an approximate distance between generative distribution and real sample distribution, indicating the realism of the image.
 
+\section{Solving User's Constraints}
+\subsection{The input of user's constraints}
 
+We use Microsoft Paint to draw images as constraints of color and shape. The size of the inputs are $64\times64$. The background of input image is pure black. Users can add arbitrary color or shape information with chromatic brush and white pen. Some examples are shown in the figure.
 
+\subsection{Constraint mask}
 
-\subsection{Solving User’s Constraints}
+We allow users to add constraints on a specific region without affecting the color and shape information elsewhere. We achieve this by extracting the mask of inputs, i.e. we use a binarizer to transform inputs into binarised gray scale images where the pure black regions have zero values. Then we use components of the mask image to multiply the components in corresponding position of the generated image to extract the same region. 
 
+\subsection{Loss functions}
+
+For each batch of images, we define the color loss to be the mean L-2 distance of the color vector in selected region and ignore others, i.e.
+
+For shape loss, we set block size BS to be 3 and angle number NO to be 8. Resulting HOG feature for each image is a (1,2,3,4)-dimensional vector. We define the shape loss of a batch of images to be the mean L-2 distance of HOG vectors, i.e.
+
+The realm score judge by Discriminator is given by $E_D = -D(g(z))$. The minimal eigenvalues of stiffness are calculated with a convolutional network $Eigenter$, so the stiffness loss is defined as $–E(G(Z))$.
+
+Finally the total cost is defined to be
+Where $\alpha$ and $\beta$ are weights to balance the constraints.
+
+Then we use gradient decent to solve this constraints problem. The Optimizer is AdamOptimizer, with learning rate 1e-5, beta1=0.9 and beta2=0.5 to make optimization process stable.
+\section{Performance}
+
+\subsection{Manifold Approximation}
+
+Figures below show the generated images of our GAN framework. Our GAN framework nicely mimic the distribution of micro biological structures in bamboo cross-section and Symplocos mosenii’s midrid.
+
+What is worth mentioning is that there isn’t any mode collapse problem in our framework. Compared with biological mimicking result of original DCGAN, our framework can generate samples with high diversity, rather than generating nice but repeating samples. 
+\subsection{Bionic Design and Optimization}
+\subsubsection{Color}
+
+As is shown in the figure, we use draw a color constraint with brush in Microsoft Paint. The top region is brushed with white color to expect GAN to generate bamboo structure with border on the top. The results shows that a series of desired biological structures are generated. 
+
+\subsubsection{Shape}
+
+Similarly, we draw a white line at some regions of the image to give constraints about shape. We use pen rather than brush to draw the lines so them can provide meaningful gradient information. We can observe that our method can generate images than meets user’s requirements.
+
+\subsubsection{The Influence of Realism Loss}
+
+Intuitively, the feature of user’s constraints are not common in the distribution of real sample distribution, thus the more generated images meet users’ constraints, the lesser they resemble natural structure, and are not likely to inherit the good properties of biological structures. In our method we add realism loss $E_D$ given by Discriminator into loss function to balance design and natural portions. We can view the variation of generation by adjusting the weight of realism loss in the loss function.
+
+As the weight of realism score increase, the results become more similar to real bamboo cross-section. By adjusting this hyperparameter, we could control to what degree users can interact with biological structure.
+
+\subsubsection{The Influence of Stiffness Loss}
+Realism loss measures performance in a geometrical way, while stiffness loss measures the performance in a mechanical way. As shown in the figure, 
+
+\subsubsection{ Meaningful loss}
+
+In fact, we could directly optimize to reduce realism loss and stiffness loss, and reorder the generated images by them to view their influence.
+
+As is shown in the figure, realism loss has placed images not ‘real’ enough at the last, because large area of pure white region makes them unreal.
+
+After optimization to reduce stiffness loss, we can observe that GAN generates images with thicker and clearer borders between micro holes in bamboo cross-section. This coincide with our perceptual impression that thicker framework possesses more mechanical stiffness. With stiffness loss in the loss function, we could guarantee and optimize the mechanical properties of bionic design products. 

@@ -135,23 +135,23 @@ if __name__ == '__main__':
         lib.ops.linear.set_weights_stdev(0.02)
      
         
-        output = lib.ops.conv2d.Conv2D('Encoder.1', 3, dim, 5, inputs, stride=2)
+        output = lib.ops.conv2d.Conv2D('Eigener.1', 3, dim, 5, inputs, stride=2)
         output = nonlinearity(output)
     
-        output = lib.ops.conv2d.Conv2D('Encoder.2', dim, 2*dim, 5, output, stride=2)
-    
-        output = nonlinearity(output)
-    
-        output = lib.ops.conv2d.Conv2D('Encoder.3', 2*dim, 4*dim, 5, output, stride=2)
+        output = lib.ops.conv2d.Conv2D('Eigener.2', dim, 2*dim, 5, output, stride=2)
     
         output = nonlinearity(output)
     
-        output = lib.ops.conv2d.Conv2D('Encoder.4', 4*dim, 8*dim, 5, output, stride=2)
+        output = lib.ops.conv2d.Conv2D('Eigener.3', 2*dim, 4*dim, 5, output, stride=2)
+    
+        output = nonlinearity(output)
+    
+        output = lib.ops.conv2d.Conv2D('Eigener.4', 4*dim, 8*dim, 5, output, stride=2)
     
         output = nonlinearity(output)
     
         output = tf.reshape(output, [-1, 4*4*8*dim])
-        output = lib.ops.linear.Linear('Encoder.Output', 4*4*8*dim, 1, output) 
+        output = lib.ops.linear.Linear('Eigener.Output', 4*4*8*dim, 1, output) 
         
         eigen = tf.tanh(output)#128*1
         
@@ -208,35 +208,45 @@ if __name__ == '__main__':
         real_data = 2*((tf.cast(real_data_conv, tf.float32)/255.)-.5)
         
         true_eigen = tf.placeholder(tf.float32, shape=[args.BATCH_SIZE,1])
-        true_eigen_tile = tf.tile(true_eigen[:,:,np.newaxis,np.newaxis],[1,3,64,64])
+        #true_eigen_tile = tf.tile(true_eigen[:,:,np.newaxis,np.newaxis],[1,3,64,64])
         
-        real_data_trans = tf.add(real_data,0.25*true_eigen_tile)
-        real_data_trans = tf.reshape(real_data_trans, [args.BATCH_SIZE, args.OUTPUT_DIM])
+        #real_data_trans = tf.add(real_data,0.5*true_eigen_tile)
+        #real_data_trans = tf.reshape(real_data_trans, [args.BATCH_SIZE, args.OUTPUT_DIM])
 
         
         fake_data = Generator(args.BATCH_SIZE)
         
-        fake_eigen = Eigener(fake_data)
-        fake_eigen_tile = tf.tile(fake_eigen[:,:,np.newaxis,np.newaxis],[1,3,64,64])#128*3*64*64        
+        #fake_eigen = Eigener(fake_data)
+        #fake_eigen_tile = tf.tile(fake_eigen[:,:,np.newaxis,np.newaxis],[1,3,64,64])#128*3*64*64        
         
-        fake_data_trans = tf.add(0.25*fake_eigen_tile,fake_data)        
-        fake_data_trans = tf.reshape(fake_data_trans, [-1, args.OUTPUT_DIM])
+        #fake_data_trans = tf.add(0.5*fake_eigen_tile,fake_data)        
+        #fake_data_trans = tf.reshape(fake_data_trans, [-1, args.OUTPUT_DIM])
         
         alter_eigen = Eigener(real_data)
-        alter_eigen_tile = tf.tile(alter_eigen[:,:,np.newaxis,np.newaxis],[1,3,64,64])#128*3*64*64                
+        #alter_eigen_tile = tf.tile(alter_eigen[:,:,np.newaxis,np.newaxis],[1,3,64,64])#128*3*64*64                
                 
-        real_data_trans_alter = tf.add(real_data,0.25*alter_eigen_tile)
-        real_data_trans_alter = tf.reshape(real_data_trans_alter, [-1, args.OUTPUT_DIM])
+        #real_data_trans_alter = tf.add(real_data,0.5*alter_eigen_tile)
+        #real_data_trans_alter = tf.reshape(real_data_trans_alter, [-1, args.OUTPUT_DIM])
+        
+        real_data = tf.reshape(real_data, [-1, args.OUTPUT_DIM])
+        fake_data = tf.reshape(fake_data, [-1, args.OUTPUT_DIM])
         
         
         
+        disc_real = Discriminator(real_data)
+        disc_fake = Discriminator(fake_data)
         
-        disc_real = Discriminator(real_data_trans)
+        eigen_cost = tf.reduce_mean(tf.square(true_eigen-alter_eigen))
         
-        disc_fake = 0.8*Discriminator(fake_data_trans) + 0.2*Discriminator(real_data_trans_alter)
+        
+        
+        #disc_alter = Discriminator(real_data_trans_alter)
+        
+        #disc_fake = 0.5*Discriminator(fake_data_trans) + 0.5*Discriminator(real_data_trans_alter)
         
         gen_params = lib.params_with_name('Generator')
         disc_params = lib.params_with_name('Discriminator')
+        eigen_params = lib.params_with_name('Eigener')
         
         if args.MODE == 'wgan':
             gen_cost = -tf.reduce_mean(disc_fake)
@@ -269,8 +279,8 @@ if __name__ == '__main__':
                 minval=0.,
                 maxval=1.
             )
-            differences = fake_data_trans - real_data_trans
-            interpolates = real_data_trans + (alpha*differences)
+            differences = fake_data - real_data
+            interpolates = real_data + (alpha*differences)
             gradients = tf.gradients(Discriminator(interpolates), [interpolates])[0]
             slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients), reduction_indices=[1]))
             gradient_penalty = tf.reduce_mean((slopes-1.)**2)
@@ -281,11 +291,18 @@ if __name__ == '__main__':
                 beta1=0.5,
                 beta2=0.9
             ).minimize(gen_cost, var_list=gen_params)
+            
             disc_train_op = tf.train.AdamOptimizer(
                 learning_rate=1e-3, 
                 beta1=0.5, 
                 beta2=0.9
             ).minimize(disc_cost, var_list=disc_params)
+            
+            eigen_train_op = tf.train.AdamOptimizer(
+                learning_rate=1e-5, 
+                beta1=0.5, 
+                beta2=0.9
+            ).minimize(eigen_cost, var_list=eigen_params)            
         
             clip_disc_weights = None
         
@@ -340,7 +357,7 @@ if __name__ == '__main__':
        # print(_xeigen)
         _x_r = session.run(real_data, feed_dict={real_data_conv: _x[:args.BATCH_SIZE]})
         _x_r = ((_x_r+1.)*(255.99/2)).astype('int32')
-        lib.save_images.save_images(_x_r, 'samples_groundtruth.png')
+        lib.save_images.save_images(_x_r.reshape((args.BATCH_SIZE, 3, 64, 64)), 'samples_groundtruth.png')
         
         saver = tf.train.Saver(max_to_keep=80)
         session.run(tf.initialize_all_variables())
@@ -370,6 +387,7 @@ if __name__ == '__main__':
             
             if iteration > 0:
                 _ = session.run(gen_train_op)
+
     
             if args.MODE == 'dcgan':
                 disc_iters = 1
@@ -383,6 +401,8 @@ if __name__ == '__main__':
                 )
                 if clip_disc_weights is not None:
                     _ = session.run(clip_disc_weights)
+                    
+            _ = session.run(eigen_train_op,feed_dict={real_data_conv:_data,true_eigen:_eigen})            
     
             lib.plot.plot('train disc cost', _disc_cost)
             lib.plot.plot('time', time.time() - start_time)
@@ -392,9 +412,11 @@ if __name__ == '__main__':
             if index % 10 == 9:
                 generate_image(index)
                 saver.save(session, args.model_dir + '/wgangp_' + str(index) + '.cptk')
-               
-
-               
+                _true_eigen,_alter_eigen = session.run([true_eigen,alter_eigen],feed_dict={real_data_conv:_data,true_eigen:_eigen})
+                print('true_eigen')
+                print(_true_eigen)
+                print('alter_eigen')
+                print(_alter_eigen)
                #saver.save(session, 'wgangp_bionics' + '.cptk')
             # Write logs every 100 iters
             if (index < 5) or (index % 10 == 9):

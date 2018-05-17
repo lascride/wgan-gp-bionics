@@ -4,9 +4,9 @@
 
 
 \section{Deep learning}
-Deep learning are machine learning techniques that have been generally applied in image recognition, speech recognition, language processing and etc. Deep learning design computational models with multiple layers to learn multiple representations of the natural data. The construction of traditional machine learning and pattern recognition system requires considerable expertise in relative domains to design a useful feature extractor to transform the raw data into feature vectors which the subsequent system such as classifier and clusterer could handle.
+Deep learning are machine learning techniques that have been generally applied in image recognition, speech recognition, language processing and etc. Deep learning design computational models with multiple layers to learn multiple representations of the natural data. The construction of traditional machine learning and pattern recognition system requires considerable expertise in relative domains to design a useful feature extractor to transform the raw data into feature vectors which the subsequent system such as classifier and clusterer could handle.The processing results highly rely on the design of feature extractor. 
 
-Thus the processing results highly rely on the design of feature extractor. On the other hand, deep learning methods compose many non-linear modules which each could transform a level of representation into a higher and more abstract level, and finally learn multiple layers of representation. Moreover, according to the performance of the representation, deep learning network could optimize the parameters of the non-linear modules. As a result, deep learning get rid of the dependence on considerable expertise. Since the extractors are not designed by human engineers, and are learned with raw data, we can apply deep learning methods to many aspects easily. More importantly, they might have far better performance on a specific task than before. In fact, while learning these transformations, deep learning network could approximate very complex functions, which are valuable in various applications.
+On the other hand, deep learning methods compose many non-linear modules which each could transform a level of representation into a higher and more abstract level, and finally learn multiple layers of representation. Moreover, according to the performance of the representation, deep learning network could optimize the parameters of the non-linear modules. As a result, deep learning get rid of the dependence on considerable expertise. Since the extractors are not designed by human engineers, and are learned with raw data, we can apply deep learning methods to many aspects easily. More importantly, they might have far better performance on a specific task than before. In fact, while learning these transformations, deep learning network could approximate very complex functions, which are valuable in various applications.
 
 
 \section{Convolutional Neural Networks}
@@ -89,6 +89,7 @@ The architecture of DCGAN is shown below:
 	\figcaption{DCGAN's convolutional structure.}
 	\label{fig:9}
 \end{figure}
+
 The Generator takes a 100-dimensional random uniform distribution noise as inputs and then map them into a small spiral convolutional representation with a large number of feature maps. After a series of fractionally-strided convolutions, the inputs are rescaled into a 3-channel 64*64 pixel image. 
 
 Since DCGAN utilizes CNN architecture, the training stability is enhanced. Also, while training, the Discriminator learns meaningful representations with its convolution layers. For example, DCGAN can capture elements like bed, windows in LSUN bedrooms dataset. 
@@ -130,13 +131,15 @@ A simple example shows the advantages of EM algorithm: Let $Z \sim U[0,1]$ be a 
 
 This example shows us sequences of distributions that doesn't converges under other distance will converge in EM distance. When learning these kinds of distributions over a low-dimensional manifold using gradient descending, other distances cannot give sufficient gradient information since the supports tend to have non-empty intersection contained in a set of measure zero. But we could still use EM distance to train the model.
 
-From EM distance to WGAN: Since the joint distribution in EM distance cannot be solved directly, they use a lemma to get an equivalent distance function:
+\subsubsection{From EM distance to WGAN}
+
+Since the joint distribution in EM distance cannot be solved directly, they use a lemma to get an equivalent distance function:
 \begin{equation}
 \begin{aligned}
 W(\mathbb{P}_r,\mathbb{P}_g) = \frac{1}{K} \sup \limits_{\|f\|_L\le K} \mathbb{E}_{x\sim\mathbb{P}_r}[f(x)]-\mathbb{E}_{x\sim\mathbb{P}_g}[f(x)]
 \end{aligned}
 \end{equation}
 
-Where the supreme is taken over all the K-Lipschitz functions. Since deep neural networks have incredible ability to approximate functions, we could use a network to represent f and expect the result will be sufficiently close to EM-distance. Origin WGANs use weight clipping to enforce Lipschitz constraints, and Improved WGANs use gradient penalty to enforce them.
+Where the supreme is taken over all the K-Lipschitz functions. Since deep neural networks have incredible ability to approximate functions, we could use a network to represent $f$ and expect the result will be sufficiently close to EM-distance. Origin WGANs use weight clipping to enforce Lipschitz constraints, and Improved WGANs use gradient penalty to enforce them.
 
 Since the Discriminator is trained to give EM-distance of $\mathbb{P}_r$ and $\mathbb{P}_g$, its loss function $d_{loss}$ can give a meaningful metric to indicate training stage. Also, the good properties of EM-distance enable WGANs to have a flexible choice of network structure without apparently affecting its performance.
