@@ -4,17 +4,15 @@
 
 
 \section{Deep learning}
-Deep learning are machine learning techniques that have been generally applied in image recognition, speech recognition, language processing and etc. Deep learning design computational models with multiple layers to learn multiple representations of the natural data. The construction of traditional machine learning and pattern recognition system requires considerable expertise in relative domains to design a useful feature extractor to transform the raw data into feature vectors which the subsequent system such as classifier and clusterer could handle.The processing results highly rely on the design of feature extractor. 
+Deep learning are machine learning techniques that have been generally applied in image recognition, speech recognition, language processing, etc. Deep learning design computational models with multiple layers to learn multiple representations of the natural data. The construction of traditional machine learning and pattern recognition system requires considerable expertise in relative domains to design a useful feature extractor to transform the raw data into feature vectors which the subsequent system such as classifier and clusterer could handle.The processing results highly rely on the design of feature extractor. 
 
 On the other hand, deep learning methods compose many non-linear modules which each could transform a level of representation into a higher and more abstract level, and finally learn multiple layers of representation. Moreover, according to the performance of the representation, deep learning network could optimize the parameters of the non-linear modules. As a result, deep learning get rid of the dependence on considerable expertise. Since the extractors are not designed by human engineers, and are learned with raw data, we can apply deep learning methods to many aspects easily. More importantly, they might have far better performance on a specific task than before. In fact, while learning these transformations, deep learning network could approximate very complex functions, which are valuable in various applications.
 
 
 \section{Convolutional Neural Networks}
-Deep learning is a large category containing many sub-frameworks, such as Convolutional Neural Networks, Auto Encoding, Sparse Coding, Boltzmann Machine, Deep Believe Networks and Recurrent Neural Network. When dealing different tasks, we should choose suitable framework.
-
 Convolutional Neural Networks(CNN) are powerful tools to process machine learning problems in fields like image recognition, especially when the size of image is large or we need to achieve high recognition rate.
 
-A neuron network consist of many layers. Rather than regarding each layer as representing a vector-to-vector function, we can also regard it as a system consisting of many units that act in parallel. Each unit imitate a neuron in the sense that it takes many inputs and calculate its activation values based on its weights and biases. Since the parameters like weights and biases are trainable, we could update these vector-to-vector functions continuously. The ideas of using these layers of vector valued functions are loosely inspired by neuroscientific observations, while model neural network are guided by mathematical and engineering principles. Rather than regarding neural networks as modelling of human brains, it’s better to regard them as powerful nonlinear systems that works as function approximation machines designed to achieve statistical generalization.
+A neuron network consist of many layers. Rather than regarding each layer as representing a vector-to-vector function, we can also regard it as a system consisting of many units that act in parallel. Each unit imitate a neuron in the sense that it takes many inputs and calculate its activation values based on its weights and biases. Since the parameters like weights and biases are trainable, we could update these vector-to-vector functions continuously. The ideas of using these layers of vector valued functions are loosely inspired by neuroscientific observations, while model neural network are guided by mathematical and engineering principles. Rather than regarding neural networks as modelling of human brains, it's better to regard them as powerful nonlinear systems that works as function approximation machines designed to achieve statistical generalization.
 
 A simple Convolutional Neural Networks contains three parts: input layer, hidden layer and output layer. The input layer represent raw data, and the output layer represent the results. The specific hidden layers used in Convolutional Neural Networks are convolutional layers. Convolution in deep learning generally refers to a discrete convolution option define on tensors. We can regard convolution as multiplication by a matrix. For example, If we have a two-dimensional image $I$, the convolution with a two-dimensional kernel $K$ is defined as:
 \begin{equation}
@@ -22,8 +20,13 @@ A simple Convolutional Neural Networks contains three parts: input layer, hidden
 S(i,j) = (K * I)(i,j) = \sum_m\sum_n I(m,n)K(i-m,j-m).
 \end{aligned}
 \end{equation}
-
-Convolutional layers are designed with some important princilples: 
+\begin{figure}
+	\centering
+	\includegraphics[width=0.4\textwidth]{conv}
+	\figcaption{A two-dimensional convolution}
+	\label{fig:5}
+\end{figure}
+Convolutional layers are designed with some important princilples\cite{goodfellow2016deep}: 
 \begin{itemize}
 \item Sparse interactions: Traditional neural networks use matrix multiplication to describe the interaction between inputs and outputs. Each input is connected to each output. For example, an image may contain millions of pixels. However, we actually only need tens of or hundreds of pixels to represent small but meaningful features such as edges and shapes. So we only need to use much fewer parameters to extract the features, which is going to save memory, reduce operations and enhance statistical efficiency. By doing convolution operations, we could construct only sparse interaction between units by making the kernel size smaller than the inputs.
 \begin{figure}
@@ -43,8 +46,8 @@ Convolutional layers are designed with some important princilples:
 
 With the belief to understand our complex world in a probabilistic way, deep learning methods aim at discovering hierarchical models that can represent the probability distribution of natural data such as natural images and audio waveforms. Deep learning consist of discriminative methods and generative methods. Discriminative models usually learn to map raw, sensory and high-dimensional data into meaningful class labels, and have got huge success in many classification tasks. Generative models learn how to use inputs with distributions we have known to produce distributions as similar as possible to the data. The inputs are often low-dimensional and can be described with much smaller set of parameters. Generative methods force models to discover and abstract the hidden nature of data and then reproduce the data. Common generative methods includes restricted Boltzmann machines (RBMs), deep Boltzmann machines (DBMs), Deep belief networks (DBNs), Variational Autoencoder (VAE), and Generative Adversarial Networks (GAN).
 
-\subsection{Generative Adversarial Networks (GAN)}
-As is shown in the figure, a general GAN framework consist of two parts, Generator and Discriminator. Generator and Discriminator are both multilayer perceptions. The inputs of the Generator are random noises z of a prior distribution, say uniform distribution or normal distribution. Then the Generator maps the inputs to data space with differentiable neural networks.
+\subsection{Generative Adversarial Networks (GAN)\cite{goodfellow2014generative}}
+As is shown in figure 2.3, a general GAN framework consist of two parts, Generator and Discriminator. Generator and Discriminator are both multilayer perceptions. The inputs of the Generator are random noises $z$ of a prior distribution, say uniform distribution or normal distribution. Then the Generator maps the inputs to data space with differentiable neural networks.
 \begin{figure}
 	\centering
 	\includegraphics[width=1\textwidth]{gan_framework}
@@ -62,7 +65,7 @@ To be specific, we train Generator to minimize $\log(1-D(G(z)))$, and train Disc
 
 We could solve this min-max game by updating parameters of G and D alternately with stochastic gradient descending.
 
-The figure shows us how GAN framework works: The black, dotted line represents samples from the data generating distribution $p_{data}$. The green, solid line represent the generative distribution $P_g(G)$ produced by generator. The blue , dotted line represents the discriminative distributionc $D$ which discriminates between real and fake samples. Generative Adversarial Networks are train by simultaneously updating G and D. If D and G have enough capacity, the generative distribution $p_g$ finally converges to $p_{data}$, and Discriminator won't be able to differentiate the two distributions, making $D(X)=\frac{1}{2}$.
+The figure shows us how GAN framework works: The black, dotted line represents samples from the data generating distribution $p_{data}$. The green, solid line represent the generative distribution $P_g(G)$ produced by generator. The blue , dotted line represents the discriminative distributionc $D$ which discriminates between real and fake samples. Generative Adversarial Networks are train by simultaneously updating G and D. If D and G have enough capacity, the generative distribution $p_g$ finally converges to $p_{data}$, and Discriminator won't be able to differentiate the two distributions, making $D(x)=\frac{1}{2}$.
 \begin{figure}
 	\centering
 	\includegraphics[width=1\textwidth]{GAN_1}
@@ -70,19 +73,18 @@ The figure shows us how GAN framework works: The black, dotted line represents s
 	\label{fig:7}
 \end{figure}
 
-Here are some performance of GAN on Mnist dataset.
 \begin{figure}
 	\centering
-	\includegraphics[width=0.7\textwidth]{GAN_mnist}
+	\includegraphics[width=0.5\textwidth]{GAN_mnist}
 	\figcaption{GAN's performance on Mnist dataset.}
 	\label{fig:8}
 \end{figure}
-\subsection{Deep Convolutional Generative Adversarial Networks (DCGAN)}
-There is no need to define a heuristic loss function in GAN framework, making its training extremely unrestrained. However, it also makes traditional GAN model hard to converge. The training process of GAN is unstable, the Generator tends to produce meaningless outputs, so Discriminator can easily separate real samples and fake samples, resulting in useless feedback to Generator, making the latter even perform worse.
+\subsection{Deep Convolutional Generative Adversarial Networks (DCGAN)\cite{radford2015unsupervised}}
+There is no need to define a heuristic loss function in GAN framework, making its training extremely unrestrained. However, it also makes traditional GAN model hard to converge. The training process of GAN is unstable: the Generator tends to produce meaningless outputs, so Discriminator can easily separate real samples and fake samples, resulting in useless feedback to Generator, making the latter even perform worse.
 
-In order to guide the training of GAN, XXX and XXX propose a set of constrains from convolutional networks on the architecture of GAN. They call these architectures Deep Convolutional GANs, and have shown that DCGANs are strong candidates for unsupervised learning on image datasets.
+In order to guide the training of GAN, a set of constrains from deep convolutional networks are proposed on the architecture of GAN. They call these architectures Deep Convolutional GANs, and have shown that DCGANs are strong candidates for unsupervised learning on image datasets.
 
-The architecture of DCGAN is shown below: 
+The architecture of DCGAN is shown in figure 2.6.
 \begin{figure}
 	\centering
 	\includegraphics[width=1\textwidth]{dcgan_net}
@@ -90,17 +92,17 @@ The architecture of DCGAN is shown below:
 	\label{fig:9}
 \end{figure}
 
-The Generator takes a 100-dimensional random uniform distribution noise as inputs and then map them into a small spiral convolutional representation with a large number of feature maps. After a series of fractionally-strided convolutions, the inputs are rescaled into a 3-channel 64*64 pixel image. 
+The Generator takes a 100-dimensional random uniform distribution noise as inputs and then map them into a small spiral convolutional representation with a large number of feature maps. After a series of fractionally-strided convolutions, the inputs are rescaled into a three-channel 64*64 pixel image. 
 
-Since DCGAN utilizes CNN architecture, the training stability is enhanced. Also, while training, the Discriminator learns meaningful representations with its convolution layers. For example, DCGAN can capture elements like bed, windows in LSUN bedrooms dataset. 
+Since DCGANs utilize CNN architecture, the training stability is enhanced. Also, while training, the Discriminator learns meaningful representations with its convolution layers. For example, DCGAN can capture elements like bed, windows in LSUN bedrooms dataset. 
 
 Moreover, DCGAN has shown that the manifold learned has smooth transitions. We could walk in the latent space to adjust the outputs of Generator. For example, the author have shown that interpolation of random points in Z produces meaningful image morphing. They also apply vector arithmetic to integrate different features.
 
 
-\subsection{Wasserstein GAN (WGAN)}
+\subsection{Wasserstein GAN (WGAN)\cite{arjovsky2017wasserstein}}
 Traditional GAN framework is well known to be unstable. DCGAN attempts to solve this problem by restricting the network structure with CNN, while WGAN theoretically analyzes the reason of traditional GAN's delicate training process.
 
-The author points out that, when the Discriminator reaches its optimum, optimizing the loss functions of GAN is equivalent to optimize distance functions related to the Kullback-Leiber divergence $KL(\mathbb{P}_r||\mathbb{P}_g)$ and Jensen-Shannon divergence $JS(\mathbb{P}_r||\mathbb{P}_g)$. However, when the model manifold and the true distribution's support have a non-negligible intersection, KL divergence is infinity, while JS divergence is log2. This leads to gradient vanishing problem when updating Generator. Since the manifold of Generator outputs' support are usually low-dimensional submanifold of a high-dimensional space, the measure of the intersection of $\mathbb{P}_r$ and $\mathbb{P}_g$ tends to be very small. So gradient vanishing is an inevitable problem in origin GAN, producing imbalance in Generator’s and Discriminator’s training process. What's more, the infinity of KL divergence will force the Generator to produce real but repetitive samples, resulting in mode collapse problem.
+The author points out that, when the Discriminator reaches its optimum, optimizing the loss functions of GAN is equivalent to optimize distance functions related to the Kullback-Leiber divergence $KL(\mathbb{P}_r||\mathbb{P}_g) = \int \log(\frac{P_r(x)}{P_g(x)})P_r(x)d\mu(x)$ and Jensen-Shannon divergence $JS(\mathbb{P}_r||\mathbb{P}_g)=KL(\mathbb{P}_r||\mathbb{P}_m)+KL(\mathbb{P}_g||\mathbb{P}_m)$, where $\mathbb{P}_m$ is a mixture $(\mathbb{P}_r+\mathbb{P}_g)/2$. However, when the model manifold and the true distribution's support have a non-negligible intersection, KL divergence is infinity, while JS divergence is log2. This leads to gradient vanishing problem when updating Generator. Since the manifold of Generator outputs' support are usually low-dimensional submanifold of a high-dimensional space, the measure of the intersection of $\mathbb{P}_r$ and $\mathbb{P}_g$ tends to be very small. So gradient vanishing is an inevitable problem in origin GAN, producing imbalance in Generator's and Discriminator's training process. What's more, the infinity of KL divergence will force the Generator to produce real but repetitive samples, resulting in mode collapse problem.
 
 In order to solve the disadvantages of origin GAN, the author comes up with Earth-Mover distance:
 \begin{equation}
@@ -109,7 +111,7 @@ W(\mathbb{P}_r,\mathbb{P}_g) = \inf \limits_{\gamma \in \prod(\mathbb{P}_r,\math
 \end{aligned}
 \end{equation}
 
-Where $\prod(\mathbb{P}_r,\mathbb{P}_g)$ denotes the set of all joint distribution $\gamma(x,y)$ whose marginals are respectively $\mathbb{P}_r$ and $\mathbb{P}_g$ . Intuitively, EM distance indicates how much 'mass' must be transported form x to y to transform distribution $\mathbb{P}_r$ to $\mathbb{P}_g$. In fact, EM distance is the cost of optimal transport plan theory.
+Where $\prod(\mathbb{P}_r,\mathbb{P}_g)$ denotes the set of all joint distribution $\gamma(x,y)$ whose marginals are respectively $\mathbb{P}_r$ and $\mathbb{P}_g$ . Intuitively, EM distance indicates how much 'mass' must be transported form x to y to transform distribution $\mathbb{P}_r$ to $\mathbb{P}_g$. In fact, EM distance is the 'cost' of optimal transport plan.
 
 A simple example shows the advantages of EM algorithm: Let $Z \sim U[0,1]$ be a uniform distribution on [0,1], and set $\mathbb{P}_0 = (0,Z)$, $\mathbb{P}_\theta=(\theta,Z)$ be distributions in $\mathbb{R}^2$, where $\theta$ is a fixed real parameter. Then:
 
@@ -118,13 +120,13 @@ A simple example shows the advantages of EM algorithm: Let $Z \sim U[0,1]$ be a 
 &W(\mathbb{P}_0,\mathbb{P}_\theta) = |\theta|\\
 &JS(\mathbb{P}_0,\mathbb{P}_\theta) = 
 \begin{cases}
-\log 2& \text{x=0}\\
-1& \text{x!=0}
+\log 2& \text{$\theta \neq 0$}\\
+0& \text{$\theta=0$}
 \end{cases}\\
 &KL(\mathbb{P}_0,\mathbb{P}_\theta) = 
 \begin{cases}
-+\infty & \text{x=0}\\
-0 & \text{x!=0}
++\infty & \text{$\theta\neq 0$}\\
+0 & \text{$\theta=0$}
 \end{cases}\\
 \end{aligned}
 \end{equation}
@@ -140,6 +142,6 @@ W(\mathbb{P}_r,\mathbb{P}_g) = \frac{1}{K} \sup \limits_{\|f\|_L\le K} \mathbb{E
 \end{aligned}
 \end{equation}
 
-Where the supreme is taken over all the K-Lipschitz functions. Since deep neural networks have incredible ability to approximate functions, we could use a network to represent $f$ and expect the result will be sufficiently close to EM-distance. Origin WGANs use weight clipping to enforce Lipschitz constraints, and Improved WGANs use gradient penalty to enforce them.
+Where the supreme is taken over all the K-Lipschitz functions. Since deep neural networks have incredible ability to approximate functions, we could use a network to represent $f$ and expect the result will be sufficiently close to EM-distance. Origin WGANs use weight clipping to enforce Lipschitz constraints, and Improved WGANs\cite{gulrajani2017improved} use gradient penalty to enforce them.
 
 Since the Discriminator is trained to give EM-distance of $\mathbb{P}_r$ and $\mathbb{P}_g$, its loss function $d_{loss}$ can give a meaningful metric to indicate training stage. Also, the good properties of EM-distance enable WGANs to have a flexible choice of network structure without apparently affecting its performance.

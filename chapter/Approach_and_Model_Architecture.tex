@@ -4,6 +4,8 @@
 In order to execute structural bionic design, we first need to obtain sufficient data about the chosen biological structure. Commonly used descriptions of biological structures include cross-section photos taken with camera (timbers), CT photos (bones), and etc. Surely, these photos should be taken skillful to eliminate irrelevant factors. If necessary, we also could carry out pre and post processing. In a word, after a skillful collecting and processing, finally we can get enough natural image data about our target biological structure.
 
 \section{Learning the Natural Manifold with GAN}
+
+
 If the image dataset has enough samples, we could expect it to fully reflect the biological structure. Let we assume that all biological structure images in our dataset are sampled from a distribution that lies on an ideal manifold $\mathbb{M}$, with distance function that measures two images’ sensual similarity. Directly modeling this manifold is extremely difficult, since it is a complex-structured manifold in a million-dimensional space. 
 
 Notice that by training GAN on a dataset with latent input of relatively low dimension (say 100), we can approximate $\mathbb{M}$ by a low-dimensional manifold $\widetilde{\mathbb{M}}$. The latent input z then serves as a set of global coordinates of $\widetilde{\mathbb{M}}$. We can formally define $\widetilde{\mathbb{M}} = \{G(z)|z\in\mathbb{Z}\}$ and regard it as an approximation of $\mathbb{M}$. Also, the distance function can be approximated by the Euclidean distance between latent vectors, i.e., 
@@ -11,16 +13,16 @@ Notice that by training GAN on a dataset with latent input of relatively low dim
 GAN have been chosen to execute approximation because: 
 \begin{itemize}
 \item GANs, especially its variants such as DCGAN, WGAN have been observed to be able to generate high quality but brand new images similar to training set, so the manifold can be nicely approximated. 
-\item GAN network structures are differentiable, thus the Euclidean distance of latent vectors can be regard as distance functions.
+\item GAN network structures are differentiable, so manipulating latent vectors continuously will generate a continuous series of structures.
 \end{itemize}
 \section{Manipulating the Latent Vector}
-By now, we already have an approximate manifold $\widetilde{\mathbb{M}}$, and a global coordinate z. Then our goal is to manipulate the latent vector z to modify the image on $\widetilde{\mathbb{M}}$, so the generated image G(z) meets user’s requirements. We achieve this by updating z to meet requirements.
+By now, we already have an approximate manifold $\widetilde{\mathbb{M}}$, and a global coordinate z. Some related works such as DCGAN and iGAN\cite{zhu2016generative} have proved the potential of GANs to produce desired samples by manipulating the latent input $z$. Our goal is to manipulate $z$ skillfully to modify the image on $\widetilde{\mathbb{M}}$, so the generated image G(z) meets user's requirements. We achieve this by updating z to meet requirements.
 
 \subsection{Solving Constraint Problem}
-Each of User's requirements is formulated as a constaint $f_g(x)=v_g$, where g denotes a type of constraint, $f_g$ maps a sample $x$ to a feature $f_g(x)$, and $v_g$ denotes the value of constraint user has set. Then we define the constraint problem as follows:
+Each of user's requirements is formulated as a constaint $f_g(x)=v_g$, where g denotes a type of constraint, $f_g$ maps a sample $x$ to a feature $f_g(x)$, and $v_g$ denotes the value of constraint user has set. Then we define the constraint problem as follows:
 \begin{equation}
 \begin{aligned}
-z^* = \mathop{\arg\min}_{z \in \mathbb{Z}} \{\underbrace{\sum_{g}\|f_g(G(z))-v_g\|^2}_{constraint\ term} +\underbrace{\lambda_s\cdot\|z-z_0\|^2}_{manifold\ smoothness} + \underbrace{E_D + S_e}_{mechanics\ term} \}
+z^* = \mathop{\arg\min}_{z \in \mathbb{Z}} \{\underbrace{\sum_{g}\|f_g(G(z))-v_g\|^2}_{constraint\ term} +\underbrace{\lambda_s\cdot\|z-z_0\|^2}_{manifold\ smoothness} + E_D + S_e \}
 \end{aligned}
 \end{equation}
 \begin{itemize}
@@ -30,16 +32,16 @@ z^* = \mathop{\arg\min}_{z \in \mathbb{Z}} \{\underbrace{\sum_{g}\|f_g(G(z))-v_g
 
 \item The realism loss $E_D$ reflect visual realism of the generated image judged by the GAN Discriminator. Geometrically, this term forces the generated image close to approximate manifold $\widetilde{\mathbb{M}}$ so as to possess the same distribution as real samples. From a bionic perspetive, this loss guarantee generated structure inherit biological features to achieve biomimicking.  
 
-\item $S_{e}$ represents stiffness loss, which is minus minimal eigenvalue of the stiffness matrix of the generated structure. Note that when the external force is isotropical (which is common in nature), the minimum eigenvalue of the stiffness matrix significantly affect the loading capacity of the structure.
+\item $S_{e}$ represents stiffness loss, which is minus minimal eigenvalue of the stiffness matrix of the generated structure. Note that when the external force is isotropical (which is common in nature), the minimum eigenvalue of the stiffness matrix significantly affects the loading capacity of the structure.
 \end{itemize}
 
 Since we are just manipulating the latent vector z to modify image on the approximate manifold $\widetilde{\mathbb{M}}$ to solve the constraint problem, the generated images are in fact chosen from $\widetilde{\mathbb{M}}$. So they naturally inherit the features of $\widetilde{\mathbb{M}}$, and in turn $\mathbb{M}$ if GANs have enough learning ability. This means the generated images combine biological features with human design naturally, which is of vital importance in biomimicking. 
 
 \subsection{Constraints' Formulations}
 \begin{itemize}
-\item Color: The dyeing of biological structure usually produce colors with gradual change based on the size and density of the micro structure. So colors can be used to guide and control the micro structure of products. For each pixel marked by user's requirement, we set the mapping f to be $f_{color}(I) = I_p$, the rgb vector at the pixel and let the constraint to be $f_{color}(I) = I_p=v_p$, forcing the selected pixel p to have value $v_p$.\
+\item Color: The dyeing of biological structure usually produce colors with gradual change based on the size and density of the micro structure. So colors can be used to guide and control the micro structure of products. For each pixel marked by user's requirement, we set the mapping f to be $f_{color}(I) = I_p$, the color vector at the pixel and let the constraint to be $f_{color}(I) = I_p=v_p$, forcing the selected pixel p to have value $v_p$.
 
-\item Shape: To meet diverse engineering demands, user would like to generate bionic structures in varied shapes. In our algorithm, shapes are also regarded as constraints. We use HOG feature which reflects gradient information to represent the shape of selected region. In this case, mapping f becomes a HOG feature extractor $f_{hog}$, i.e $f_{hog}(I)=HOG(I)_p$, the Hog feature at location p. We set $f_{hog}(I) = HOG(I)_p$ to be as close as possible to $v_g$, the HOG feature of user’s stroke.
+\item Shape: To meet diverse engineering demands, user would like to generate bionic structures in varied shapes. In our algorithm, shapes are also regarded as constraints. We use HOG feature\cite{dalal2005histograms} which use gradient information to represent the shape of selected region. In this case, mapping f becomes a HOG feature extractor $f_{hog}$, i.e $f_{hog}(I)=HOG(I)_p$, the Hog feature at location p. We set $f_{hog}(I) = HOG(I)_p$ to be as close as possible to $v_g$, the HOG feature of user’s stroke.
 \end{itemize}
 \subsection{Gradient Decent Update}
 Since the structure of manifold are complex, for most constraints the equation (3.1) is non-convex. We use gradient decent update to solve it. 
