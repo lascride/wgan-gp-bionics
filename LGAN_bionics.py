@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon May  7 23:32:20 2018
 
-@author: lenovo
-"""
 
 import os, sys
 sys.path.append(os.getcwd())
@@ -296,7 +292,6 @@ if __name__ == '__main__':
     g_vars = [var for var in t_vars if 'gen' in var.name]
     disc_train_op = tf.train.AdamOptimizer(learning_rate=0.0001, beta1=0.5, beta2=0.9).minimize(disc_cost, var_list=d_vars)
     gen_train_op = tf.train.AdamOptimizer(learning_rate=0.0001, beta1=0.5, beta2=0.9).minimize(gen_cost, var_list=g_vars)
-load
 
     clip_disc_weights = None  
     

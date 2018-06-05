@@ -20,6 +20,8 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
+np.set_printoptions(threshold=np.inf)  
+
 import sklearn.datasets
 import tensorflow as tf
 
@@ -49,6 +51,8 @@ def parse_args():
     parser.add_argument('--CRITIC_ITERS', dest='CRITIC_ITERS', help='For WGAN and WGAN-GP, number of critic iters per gen iter',type=int, default=5)
     parser.add_argument('--LAMBDA', dest='LAMBDA', help='Gradient penalty lambda hyperparameter',type=int, default=10)
     parser.add_argument('--ITERS', dest='ITERS', help='How many generator iterations to train for',type=int, default=200000)
+    parser.add_argument('--EIGEN_ITERS', dest='EIGEN_ITERS', help='How many iterations to train Eigener',type=int, default=3000)
+   
     parser.add_argument('--OUTPUT_DIM', dest='OUTPUT_DIM', help='Number of pixels in MNIST (28*28)',type=int, default=64*64*3)
     parser.add_argument('--output_lenth', dest='output_lenth', help='lenth of the output images',type=int, default=64)
     parser.add_argument('--img_num', dest='img_num', help='the number of the output images', type=int, default=4096)
@@ -207,34 +211,46 @@ if __name__ == '__main__':
         real_data_conv = tf.placeholder(tf.int32, shape=[args.BATCH_SIZE, 3, 64, 64])
         real_data = 2*((tf.cast(real_data_conv, tf.float32)/255.)-.5)
         
-        true_eigen = tf.placeholder(tf.float32, shape=[args.BATCH_SIZE,1])
-        #true_eigen_tile = tf.tile(true_eigen[:,:,np.newaxis,np.newaxis],[1,3,64,64])
         
-        #real_data_trans = tf.add(real_data,0.5*true_eigen_tile)
-        #real_data_trans = tf.reshape(real_data_trans, [args.BATCH_SIZE, args.OUTPUT_DIM])
+        
+        true_eigen = tf.placeholder(tf.float32, shape=[args.BATCH_SIZE,1])
+        true_eigen_tile = tf.tile(true_eigen[:,:,np.newaxis,np.newaxis],[1,3,64,64])
+        
+        
+        
+        real_data_trans = tf.add(real_data,0.25*true_eigen_tile)
+        real_data_trans = tf.reshape(real_data_trans, [args.BATCH_SIZE, args.OUTPUT_DIM])
 
         
         fake_data = Generator(args.BATCH_SIZE)
         
-        #fake_eigen = Eigener(fake_data)
-        #fake_eigen_tile = tf.tile(fake_eigen[:,:,np.newaxis,np.newaxis],[1,3,64,64])#128*3*64*64        
         
-        #fake_data_trans = tf.add(0.5*fake_eigen_tile,fake_data)        
-        #fake_data_trans = tf.reshape(fake_data_trans, [-1, args.OUTPUT_DIM])
+        
+        fake_eigen = Eigener(fake_data)
+        fake_eigen_tile = tf.tile(fake_eigen[:,:,np.newaxis,np.newaxis],[1,3,64,64])#128*3*64*64        
+        
+        
+        
+        fake_data_trans = tf.add(0.25*fake_eigen_tile,fake_data)        
+        fake_data_trans = tf.reshape(fake_data_trans, [-1, args.OUTPUT_DIM])
+        
+        
         
         alter_eigen = Eigener(real_data)
-        #alter_eigen_tile = tf.tile(alter_eigen[:,:,np.newaxis,np.newaxis],[1,3,64,64])#128*3*64*64                
+        alter_eigen_tile = tf.tile(alter_eigen[:,:,np.newaxis,np.newaxis],[1,3,64,64])#128*3*64*64                
                 
-        #real_data_trans_alter = tf.add(real_data,0.5*alter_eigen_tile)
-        #real_data_trans_alter = tf.reshape(real_data_trans_alter, [-1, args.OUTPUT_DIM])
-        
-        real_data = tf.reshape(real_data, [-1, args.OUTPUT_DIM])
-        fake_data = tf.reshape(fake_data, [-1, args.OUTPUT_DIM])
         
         
+        real_data_trans_alter = tf.add(real_data,0.25*alter_eigen_tile)
+        real_data_trans_alter = tf.reshape(real_data_trans_alter, [-1, args.OUTPUT_DIM])
         
-        disc_real = Discriminator(real_data)
-        disc_fake = Discriminator(fake_data)
+        #real_data = tf.reshape(real_data, [-1, args.OUTPUT_DIM])
+        #fake_data = tf.reshape(fake_data, [-1, args.OUTPUT_DIM])
+        
+        
+        
+        #disc_real = Discriminator(real_data)
+        #disc_fake = Discriminator(fake_data)
         
         eigen_cost = tf.reduce_mean(tf.square(true_eigen-alter_eigen))
         
@@ -242,49 +258,44 @@ if __name__ == '__main__':
         
         #disc_alter = Discriminator(real_data_trans_alter)
         
-        #disc_fake = 0.5*Discriminator(fake_data_trans) + 0.5*Discriminator(real_data_trans_alter)
+        
+        
+        disc_real = Discriminator(real_data_trans)
+        disc_fake = 0.8*Discriminator(fake_data_trans) + 0.2*Discriminator(real_data_trans_alter)
+        
+        
         
         gen_params = lib.params_with_name('Generator')
         disc_params = lib.params_with_name('Discriminator')
         eigen_params = lib.params_with_name('Eigener')
         
-        if args.MODE == 'wgan':
+
+        
+        if args.MODE == 'wgan-gp':
+            
+            
+            
             gen_cost = -tf.reduce_mean(disc_fake)
             disc_cost = tf.reduce_mean(disc_fake) - tf.reduce_mean(disc_real)
         
-            gen_train_op = tf.train.RMSPropOptimizer(
-                learning_rate=5e-5
-            ).minimize(gen_cost, var_list=gen_params)
-            disc_train_op = tf.train.RMSPropOptimizer(
-                learning_rate=5e-5
-            ).minimize(disc_cost, var_list=disc_params)
         
-            clip_ops = []
-            for var in lib.params_with_name('Discriminator'):
-                clip_bounds = [-.01, .01]
-                clip_ops.append(
-                    tf.assign(
-                        var, 
-                        tf.clip_by_value(var, clip_bounds[0], clip_bounds[1])
-                    )
-                )
-            clip_disc_weights = tf.group(*clip_ops)
-        
-        elif args.MODE == 'wgan-gp':
-            gen_cost = -tf.reduce_mean(disc_fake)
-            disc_cost = tf.reduce_mean(disc_fake) - tf.reduce_mean(disc_real)
         
             alpha = tf.random_uniform(
                 shape=[args.BATCH_SIZE,1], 
                 minval=0.,
                 maxval=1.
             )
-            differences = fake_data - real_data
-            interpolates = real_data + (alpha*differences)
+            
+            
+            
+            differences = fake_data_trans - real_data_trans
+            interpolates = real_data_trans + (alpha*differences)
             gradients = tf.gradients(Discriminator(interpolates), [interpolates])[0]
             slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients), reduction_indices=[1]))
             gradient_penalty = tf.reduce_mean((slopes-1.)**2)
             disc_cost += args.LAMBDA*gradient_penalty
+        
+        
         
             gen_train_op = tf.train.AdamOptimizer(
                 learning_rate=1e-3, 
@@ -298,40 +309,23 @@ if __name__ == '__main__':
                 beta2=0.9
             ).minimize(disc_cost, var_list=disc_params)
             
+            eigen_train_op_gen = tf.train.AdamOptimizer(
+                learning_rate=1e-4, 
+                beta1=0.5, 
+                beta2=0.9
+            ).minimize(gen_cost, var_list=eigen_params)                   
+            
+           
+            
             eigen_train_op = tf.train.AdamOptimizer(
-                learning_rate=1e-5, 
+                learning_rate=1e-4, 
                 beta1=0.5, 
                 beta2=0.9
             ).minimize(eigen_cost, var_list=eigen_params)            
         
             clip_disc_weights = None
         
-        elif args.MODE == 'dcgan':
-            gen_cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
-                disc_fake, 
-                tf.ones_like(disc_fake)
-            ))
-        
-            disc_cost =  tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
-                disc_fake, 
-                tf.zeros_like(disc_fake)
-            ))
-            disc_cost += tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
-                disc_real, 
-                tf.ones_like(disc_real)
-            ))
-            disc_cost /= 2.
-        
-            gen_train_op = tf.train.AdamOptimizer(
-                learning_rate=2e-4, 
-                beta1=0.5
-            ).minimize(gen_cost, var_list=gen_params)
-            disc_train_op = tf.train.AdamOptimizer(
-                learning_rate=2e-4, 
-                beta1=0.5
-            ).minimize(disc_cost, var_list=disc_params)
-        
-            clip_disc_weights = None
+
         
     
         
@@ -339,6 +333,7 @@ if __name__ == '__main__':
         # For saving samples
         fixed_noise = tf.random_uniform([args.BATCH_SIZE, 128], minval=-1.0, maxval=1.0, dtype=tf.float32, seed=1, name=None)
         fixed_noise_samples= Generator(args.BATCH_SIZE, noise=fixed_noise)          
+        
         def generate_image(iteration):
             samples = session.run(fixed_noise_samples)
             samples = ((samples+1.)*(255.99/2)).astype('int32')
@@ -380,6 +375,49 @@ if __name__ == '__main__':
  
         gen = inf_train_gen()   
 
+
+
+        if index < args.EIGEN_ITERS:
+            for iteration in range(args.EIGEN_ITERS):
+                start_time = time.time()
+           
+    
+    
+    
+                _data,_eigen = gen.__next__()
+    
+    
+                        
+                _eigen_cost, _ = session.run([eigen_cost,eigen_train_op],feed_dict={real_data_conv:_data,true_eigen:_eigen})            
+        
+                lib.plot.plot('train eigen cost', _eigen_cost)
+                lib.plot.plot('time', time.time() - start_time)
+                
+                print("iter: %d   eigen_cost: %f"%(index,_eigen_cost))
+                # Calculate dev loss and generate samples every 100 iters
+                if index % 10 == 9:
+    
+                    saver.save(session, args.model_dir + '/wgangp_' + str(index) + '.cptk')
+                    _true_eigen,_alter_eigen = session.run([true_eigen,alter_eigen],feed_dict={real_data_conv:_data,true_eigen:_eigen})
+                    print('true_eigen')
+                    print(_true_eigen)
+                    print('alter_eigen')
+                    print(_alter_eigen)
+                    print('eigen')
+                    print(np.concatenate((_true_eigen, _alter_eigen), axis=1))
+                   #saver.save(session, 'wgangp_bionics' + '.cptk')
+                # Write logs every 100 iters
+                if (index < 5) or (index % 10 == 9):
+                    lib.plot.flush()
+    
+        
+                lib.plot.tick()
+                index = index + 1
+
+
+
+
+
  
         for iteration in range(args.ITERS):
             start_time = time.time()
@@ -387,39 +425,46 @@ if __name__ == '__main__':
             
             if iteration > 0:
                 _ = session.run(gen_train_op)
-
+                _ = session.run(eigen_train_op_gen,feed_dict={real_data_conv:_data,true_eigen:_eigen})
     
-            if args.MODE == 'dcgan':
-                disc_iters = 1
-            else:
-                disc_iters = args.CRITIC_ITERS
+
+            disc_iters = args.CRITIC_ITERS
+            
+            
             for i in range(disc_iters):
+                
                 _data,_eigen = gen.__next__()
+                
                 _disc_cost, _ = session.run(
                     [disc_cost, disc_train_op],
                     feed_dict={real_data_conv:_data,true_eigen:_eigen}
                 )
-                if clip_disc_weights is not None:
-                    _ = session.run(clip_disc_weights)
+
                     
-            _ = session.run(eigen_train_op,feed_dict={real_data_conv:_data,true_eigen:_eigen})            
     
             lib.plot.plot('train disc cost', _disc_cost)
             lib.plot.plot('time', time.time() - start_time)
             
             print("iter: %d   disc_cost: %f"%(index,_disc_cost))
             # Calculate dev loss and generate samples every 100 iters
-            if index % 10 == 9:
-                generate_image(index)
-                saver.save(session, args.model_dir + '/wgangp_' + str(index) + '.cptk')
-                _true_eigen,_alter_eigen = session.run([true_eigen,alter_eigen],feed_dict={real_data_conv:_data,true_eigen:_eigen})
+            if index % 10 == 0:
+                _eigen_cost,_true_eigen,_alter_eigen = session.run([eigen_cost,true_eigen,alter_eigen],feed_dict={real_data_conv:_data,true_eigen:_eigen})
                 print('true_eigen')
                 print(_true_eigen)
                 print('alter_eigen')
                 print(_alter_eigen)
+                print('eigen')
+                print(np.concatenate((_true_eigen, _alter_eigen), axis=1))
+
+                print("iter: %d   eigen_cost: %f"%(index,_eigen_cost))
+                
+                generate_image(index)
+                saver.save(session, args.model_dir + '/wgangp_' + str(index) + '.cptk')
+                _true_eigen,_alter_eigen = session.run([true_eigen,alter_eigen],feed_dict={real_data_conv:_data,true_eigen:_eigen})
+
                #saver.save(session, 'wgangp_bionics' + '.cptk')
             # Write logs every 100 iters
-            if (index < 5) or (index % 10 == 9):
+            if (index < 5) or (index % 10 == 0 ):
                 lib.plot.flush()
 
     

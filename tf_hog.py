@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri May  4 20:13:57 2018
-
-@author: lenovo
-"""
+###############################################################################
+#Calculating HOG Feature
+###############################################################################
 
 import tensorflow as tf
 import numpy as np

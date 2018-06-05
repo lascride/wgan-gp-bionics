@@ -20,8 +20,8 @@ def make_generator(path, n_files, batch_size, dim=64, count=None):
                 yield (images,)
     return get_epoch
 
-def load(batch_size, data_dir='E:/project/project/image/input_3_64_10000_rot/10',dim=64,num=4096,count=None):
-    return make_generator(data_dir, 4*num, batch_size,dim,count)
+def load(batch_size, data_dir='E:/project/project/image/input_3_64_10000_rot/10',dim=64,num=24576,count=None):
+    return make_generator(data_dir, num, batch_size,dim,count)
 
     
 

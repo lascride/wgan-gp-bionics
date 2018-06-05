@@ -1,9 +1,6 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon May  7 23:32:20 2018
 
-@author: lenovo
-"""
+# -*- coding: utf-8 -*-
+
 
 import os, sys
 sys.path.append(os.getcwd())
