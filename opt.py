@@ -56,6 +56,11 @@ def parse_args():
     parser.add_argument('--input_color_name', dest='input_color_name', help='input color image name', default='blank')
     parser.add_argument('--input_edge_name', dest='input_edge_name', help='input edge image name', default='blank')
     
+    parser.add_argument('--weight_color', dest='weight_color', help='weight_color',type=float, default=1.0)
+    parser.add_argument('--weight_edge', dest='weight_edge', help='weight_edge',type=float, default=0.4)
+    parser.add_argument('--weight_real', dest='weight_real', help='weight_real',type=float, default=0.0)
+    parser.add_argument('--weight_mass', dest='weight_mass', help='weight_mass',type=float, default=0.0)
+    
     args = parser.parse_args()
     return args
 
@@ -251,10 +256,18 @@ if __name__ == '__main__':
         #real cost
         real_all = -Discriminator(gx)
         
+        #mass cost
+        gx_gray = (gx3[:,0,:,:]*299+gx3[:,1,:,:]*587+gx3[:,2,:,:]*114)/1000
+        mass_all = -tf.reduce_mean(gx_gray, axis=[1, 2])
+    
+        
+        
 
   
     
-        cost_all = color_all +  0.4*edge_all + 0.0*real_all 
+        #cost_all = args.weight_edge*edge_all + args.weight_real*real_all + args.weight_mass*mass_all
+        cost_all = args.weight_color*color_all + args.weight_real*real_all + args.weight_mass*mass_all
+
         cost = tf.reduce_sum(cost_all)
 
     
@@ -301,7 +314,7 @@ if __name__ == '__main__':
 
 
 
-            _m_edge,_x_c,_gx3, _m_c_o, _color_all,_real_all, _x_edge,_edge_all,_z_t,_gx, _cost, _cost_all, _ = session.run([m_edge,x_c,gx3, m_c_o,color_all,real_all,x_edge,edge_all,z_t,gx,cost,cost_all, invert_train_op], feed_dict=feed_dict)
+            _mass_all,_gx_gray,_m_edge,_x_c,_gx3, _m_c_o, _color_all,_real_all, _x_edge,_edge_all,_z_t,_gx, _cost, _cost_all, _ = session.run([mass_all,gx_gray,m_edge,x_c,gx3, m_c_o,color_all,real_all,x_edge,edge_all,z_t,gx,cost,cost_all, invert_train_op], feed_dict=feed_dict)
             print('colorall')                    
             print(_color_all)                    
             print('edgeall')                    
@@ -310,13 +323,14 @@ if __name__ == '__main__':
             print(_cost_all)
             print('realall')
             print(_real_all)      
-             
+            print('massall')
+            print(_mass_all) 
             #sort by color, edge, real
             order_all = np.argsort(_cost_all)
             order_color = np.argsort(_color_all)
             order_edge = np.argsort(_edge_all)
             order_real = np.argsort(_real_all)                
- 
+            order_mass = np.argsort(_mass_all)
 
             lib.plot_opt.plot('cost', _cost)
             lib.plot_opt.plot('time', time.time() - start_time)    
@@ -324,31 +338,38 @@ if __name__ == '__main__':
 
             #print("iter: %d ; cost_all: %f"%(iteration,_cost))
             
-            if (iteration % 100 == 99) or (iteration==0):
+            if (iteration % args.ITERS == (args.ITERS-1)) or (iteration==0):
                 lib.plot_opt.flush()
 
                 imsave(args.opt_dir+'/sketch_edge_mask'+'.png',_m_edge[0,:,:,0].reshape((_m_edge.shape[1],_m_edge.shape[2])))
         
                 #saving images
                 _gx = ((_gx+1.)*(255.99/2)).astype('int32')
-                
+                _gx_gray = ((_gx_gray+1.)*(255.99/2)).astype('int32')
                 _gx_raw = tf.reshape(_gx,[args.BATCH_SIZE, 3, 64, 64]).eval()
                 _gx_all = tf.reshape(_gx[order_all],[args.BATCH_SIZE, 3, 64, 64]).eval()
                 _gx_color = tf.reshape(_gx[order_color],[args.BATCH_SIZE, 3, 64, 64]).eval()
                 _gx_edge = tf.reshape(_gx[order_edge],[args.BATCH_SIZE, 3, 64, 64]).eval()
-                _gx_real = tf.reshape(_gx[order_real],[args.BATCH_SIZE, 3, 64, 64]).eval()                    
-   
-                lib.save_images.save_images(_gx_raw, args.opt_dir+'/aaraw_'+args.input_color_name+'_'+str(iteration)+'.png')
-                lib.save_images.save_images(_gx_all, args.opt_dir+'/all_'+args.input_color_name+'_'+str(iteration)+'.png')
-                lib.save_images.save_images(_gx_color, args.opt_dir+'/color_'+args.input_color_name+'_'+str(iteration)+'.png')
-                lib.save_images.save_images(_gx_edge, args.opt_dir+'/edge_'+args.input_edge_name+'_'+str(iteration)+'.png')
-                lib.save_images.save_images(_gx_real, args.opt_dir+'/real_'+args.input_color_name+'_'+str(iteration)+'.png')
-                
-                lib.save_images.save_samples(_gx_all, im_color, args.opt_dir+'/allcolor_'+args.input_color_name+'_'+str(iteration)+'.png')
-                lib.save_images.save_samples(_gx_all, im_edge, args.opt_dir+'/alledge_'+args.input_edge_name+'_'+str(iteration)+'.png')
+                _gx_real = tf.reshape(_gx[order_real],[args.BATCH_SIZE, 3, 64, 64]).eval()          
+                _gx_mass = tf.reshape(_gx[order_mass],[args.BATCH_SIZE, 3, 64, 64]).eval()
 
-                lib.save_images.save_samples(_gx_color, im_color, args.opt_dir+'/acolor_'+args.input_color_name+'_'+str(iteration)+'.png')
-                lib.save_images.save_samples(_gx_edge, im_edge, args.opt_dir+'/aedge_'+args.input_edge_name+'_'+str(iteration)+'.png')
+                dir_save = args.opt_dir+'/'+args.input_color_name+'_'+args.input_edge_name+'_'+str(args.weight_real)
+                if not os.path.exists(dir_save):
+                    os.makedirs(dir_save)                                
+                
+                lib.save_images.save_images(_gx_raw, dir_save+'/aaraw_'+str(iteration)+'.png')
+                lib.save_images.save_images(_gx_all, dir_save+'/all_'+str(iteration)+'.png')
+                lib.save_images.save_images(_gx_color, dir_save+'/color_'+str(iteration)+'.png')
+                lib.save_images.save_images(_gx_edge, dir_save+'/edge_'+str(iteration)+'.png')
+                lib.save_images.save_images(_gx_real, dir_save+'/real_'+str(iteration)+'.png')
+                lib.save_images.save_images(_gx_gray, dir_save+'/gray_'+str(iteration)+'.png')
+                lib.save_images.save_images(_gx_mass, dir_save+'/mass_'+str(iteration)+'.png')
+                
+                lib.save_images.save_samples(_gx_all, im_color, dir_save+'/allcolor_'+str(iteration)+'.png')
+                lib.save_images.save_samples(_gx_all, im_edge, dir_save+'/alledge_'+str(iteration)+'.png')
+
+                lib.save_images.save_samples(_gx_color, im_color, dir_save+'/acolor_'+str(iteration)+'.png')
+                lib.save_images.save_samples(_gx_edge, im_edge, dir_save+'/aedge_'+str(iteration)+'.png')
    
 
             lib.plot_opt.tick()
